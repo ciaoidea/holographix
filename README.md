@@ -6,7 +6,7 @@ Holographix is a holographic, matrix-based media and networking substrate engine
 
 Holographix (“holographic information matrix”) is a field-centric codec and UDP substrate for sensory content—RGB images and PCM WAV audio—meant to keep *useful percepts* alive on networks that behave like reality: loss, jitter, reordering, duplication, fading links, mobility. The design target is not “reliable delivery of every bit”; it is “maximum perceptual utility per bit that survives”, under quickly changing conditions, with an anytime reconstruction path that improves as fragments arrive.
 
-If you are building systems where perception must continue during impairment—robots, remote presence, ad‑hoc mesh links, disaster networks, radios—Holographix treats the medium as damaged by default and makes degradation graceful instead of catastrophic. It is explicitly tuned for the continuous, redundant regime where Large Vision Models (LVMs) and Large Audio Models (LVAs) operate: missing evidence should reduce fidelity or confidence, not force a stall.
+If you are building systems where perception must continue during impairment—robots, remote presence, ad‑hoc mesh links, disaster networks, radios—Holographix treats the medium as damaged by default and makes degradation graceful instead of catastrophic. It is explicitly tuned for the continuous, redundant regime where Large Vision Models (LVMs) and Large Audio Models (LAMs) operate: missing evidence should reduce fidelity or confidence, not force a stall.
 
 ---
 

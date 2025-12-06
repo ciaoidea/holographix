@@ -506,9 +506,6 @@ holo://mars/global/dust-field/daily-avg-2034-01-12
 
 In both cases the agent network sees the same pattern: a name `holo://object` is turned into a `content_id`, and a population of holographic chunks for that `content_id` is diffused through the mesh. Any agent or Large Media Model that knows the same `holo://object` name and receives some subset of its chunks can reconstruct a usable percept or state for that object, because fine detail has already been spread holographically across the chunk population.
 
-```
-
-
 
 ---
 

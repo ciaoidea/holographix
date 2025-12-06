@@ -164,6 +164,9 @@ holo/
     transport.py     UDP framing, segmentation, reassembly
     arch.py          helpers for holo:// URIs and content identifiers
     mesh.py          peer overlay, gossip and chunk replication policy
+
+codec_simulation/    React/Vite control deck that simulates codec behavior,
+                     visualizes degradation, and generates CLI commands
 ```
 
 The separation is deliberate. The codec does not depend on sockets. The transport does not depend on thumbnails or waveforms. The field logic does not depend on networking primitives. That boundary is what lets you alter mesh policy without touching codec math, and evolve models without rewriting packet transport.
@@ -211,6 +214,20 @@ python3 -m holo track.wav.holo
 ```
 
 To observe graded reconstruction, delete or move some `chunk_*.holo` files and decode again. The output should remain valid and globally coherent, with reduced detail.
+
+---
+
+### Codec simulation UI (control deck)
+
+`codec_simulation/` contains an interactive React/Vite deck to poke the codec, visualize degradation, and emit equivalent CLI commands. It runs entirely in Node.js locally via the Vite dev server; an Electron shell is optional and not required.
+
+```bash
+cd codec_simulation
+npm install
+npm run dev
+# optional: build static bundle for local serving
+npm run build
+```
 
 ---
 

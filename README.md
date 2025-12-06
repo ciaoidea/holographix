@@ -215,6 +215,11 @@ python3 -m holo track.wav.holo
 
 To observe graded reconstruction, delete or move some `chunk_*.holo` files and decode again. The output should remain valid and globally coherent, with reduced detail.
 
+
+![galaxy](https://github.com/user-attachments/assets/b1cd73a9-e4cc-43df-b528-d5c1c184ad52)
+
+
+
 ---
 
 ### Codec simulation UI (control deck)

@@ -267,6 +267,9 @@ stack_image_holo_dirs(
 
 `stack_image_holo_dirs` decodes each `.holo` directory, sums the images in float, and writes the pixel-wise average as `stacked_recon.png`. Uncorrelated noise cancels out; persistent structure reinforces.
 
+<img width="1150" height="599" alt="image" src="https://github.com/user-attachments/assets/c2b939d1-8911-4381-8bd7-a93e29f5401c" />
+
+
 ---
 
 ### Multi-object holographic fields (tissue-like layout)

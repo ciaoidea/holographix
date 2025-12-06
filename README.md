@@ -68,35 +68,63 @@ Decoding is the same physical idea in reverse: reconstruct coarse; allocate resi
 
 ## Golden-ratio interleaving (why it exists, what it guarantees)
 
-If you cut the residual into contiguous blocks, you get brittle locality: lose one block and you lose one region or one time segment. Holographix instead spreads residual samples along a deterministic orbit so that every chunk samples the *entire* signal.
+If you cut the residual into contiguous blocks, you get brittle locality: lose one block and you lose one region or one time segment. Holographix does the opposite. It treats the residual as a single line and walks it with a step that is “as incommensurate as possible” with the length, so that every chunk samples the entire signal. The way that step is chosen comes from the simplest geometric definition of the golden ratio.
 
-Let the flattened residual be a 1‑D array of length `N`. Define the golden ratio:
+Take a segment and split it into a larger and a smaller part. The golden condition is that the ratio of the whole to the larger part is the same as the ratio of the larger part to the smaller:
 
 ```text
-phi = (1 + sqrt(5)) / 2  ≈ 1.618033...
-1/phi = phi - 1          ≈ 0.618033...
+whole : larger  =  larger : smaller
+````
+
+Set the whole to `1`, the larger part to `x`, and the smaller to `(1 − x)`. Then
+
+```text
+1 / x = x / (1 − x)
+
+x^2 + x − 1 = 0
+x = (sqrt(5) − 1) / 2  ≈  0.618033...
 ```
 
-Choose a discrete rotation step close to `N/phi` and adjust it until it is coprime with `N`:
+The classical golden ratio `phi` is
 
 ```text
-step ≈ N/phi
+phi     = (1 + sqrt(5)) / 2  ≈  1.618033...
+phi - 1 = 1 / phi            ≈  0.618033...
+```
+
+This “most irrational” proportion is what Holographix uses to spread fine detail as evenly as possible.
+
+Once the residual has been flattened into a 1-D array of length `N`, the codec turns the golden fraction into a discrete rotation step:
+
+```text
+step ≈ (phi − 1) * N   (i.e. N / phi)
+```
+
+The step is then nudged until it is coprime with `N`:
+
+```text
 gcd(step, N) = 1
 ```
 
-Then define a full-cycle permutation:
+which guarantees that the mapping
 
 ```text
 perm[i] = (i * step) mod N
 ```
 
-If `B` chunks are produced, chunk `b` takes a strided subsequence of this orbit:
+is a single full-cycle permutation over all indices. The residual is not cut into blocks; it is threaded along this orbit.
+
+If the residual is split into `B` chunks, chunk `b` takes a strided subsequence of the orbit:
 
 ```text
 perm[b], perm[b + B], perm[b + 2B], ...
 ```
 
-The practical claim you can test is not mystical: quality should be primarily a function of “how many samples arrived”, not “which chunk IDs arrived”. A good holographic layout yields low variance across random subsets of equal size, and degrades without catastrophic discontinuities.
+Each chunk is therefore a phase slice of the same golden walk over the residual. Every chunk touches the whole signal in a quasi-uniform way instead of “owning” a local piece. When some chunks are lost, reconstruction degrades by losing global detail, not by punching holes in specific regions or time windows.
+
+The practical claim you can measure is not mystical: quality should depend mainly on how many samples arrived, not on which specific chunk IDs arrived. A good golden interleaving yields low variance across random subsets of equal size and degrades without catastrophic discontinuities.
+
+```
 
 ---
 

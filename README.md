@@ -301,11 +301,7 @@ The project also adopts a methodological stance: the deepest design work happens
 
 ## References
 
-A. Rizzo, “The Golden Ratio Theorem”, *Applied Mathematics*, 14(09), 2023.
-
-A. Einstein, letter to Maurice Solovine (May 7, 1952), on the relation between experience, axioms, and scientific concepts.
-
-
+A. Rizzo, *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. DOI: 10.4236/apm.2023.139038
 
 
 

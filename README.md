@@ -480,7 +480,7 @@ If you care about interaction realism (prosody, facial motion, affect), it is al
 ---
 
 
-## `holo://object`: addressing shared fields in the Holographix agent network
+## `The holo:// protocol in the Holographix agent network
 
 In Holographix, a network of agents and Large Media Models talks by reading and writing shared holographic fields. `holo://` is the scheme; the part that follows is the application-level name of one such field:
 

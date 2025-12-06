@@ -53,7 +53,7 @@ A compact view of roles is captured by the mapping below; it is an analogy used 
 | `arch` | identity and compatibility (`holo://...` → content identifiers) | receptors |
 | `transport` | UDP framing, segmentation, reassembly | impulses |
 
-<img width="621" height="378" alt="image" src="https://github.com/user-attachments/assets/ca097bb5-3aaa-4efa-ba5b-8e6495cbae44" />
+<img width="1280" height="600" alt="image" src="https://github.com/user-attachments/assets/ca097bb5-3aaa-4efa-ba5b-8e6495cbae44" />
 
 
 ---
@@ -267,7 +267,7 @@ stack_image_holo_dirs(
 
 `stack_image_holo_dirs` decodes each `.holo` directory, sums the images in float, and writes the pixel-wise average as `stacked_recon.png`. Uncorrelated noise cancels out; persistent structure reinforces.
 
-<img width="1150" height="599" alt="image" src="https://github.com/user-attachments/assets/c2b939d1-8911-4381-8bd7-a93e29f5401c" />
+<img width="1280" height="800" alt="image" src="https://github.com/user-attachments/assets/c2b939d1-8911-4381-8bd7-a93e29f5401c" />
 
 
 ---
@@ -475,7 +475,7 @@ Two expected signatures indicate genuine interchangeability: mean quality improv
 
 If you care about interaction realism (prosody, facial motion, affect), it is also worth measuring reconstruction stability as fragments arrive in time with burst loss and reordering. The goal is not only “good after enough data”, but “continuous without spurious discontinuities during acquisition”.
 
-<img width="1277" height="733" alt="image" src="https://github.com/user-attachments/assets/e8c700f2-e5b6-424b-a848-a230294e8269" />
+<img width="1280" height="800" alt="image" src="https://github.com/user-attachments/assets/e8c700f2-e5b6-424b-a848-a230294e8269" />
 
 
 ---

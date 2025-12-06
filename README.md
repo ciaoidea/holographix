@@ -1,4 +1,4 @@
-# HolographiX <img width="30" height="30" alt="image" src="https://github.com/user-attachments/assets/d7b26ef6-4645-4add-8ab6-717eb2fb12f2" />
+# <img width="36" height="36" alt="image" src="https://github.com/user-attachments/assets/d7b26ef6-4645-4add-8ab6-717eb2fb12f2" /> HolographiX
 
 
 <img width="1280" height="720" alt="image" src="https://github.com/user-attachments/assets/ae95ff1f-b15f-46f3-bf1c-bebab868b851" />

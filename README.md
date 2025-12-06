@@ -196,14 +196,14 @@ Encoding produces a `.holo` directory containing `chunk_XXXX.holo` files.
 # show options
 python3 -m holo --help
 
-# encode an image with default chunk sizing
-python3 -m holo image.png
+# encode an image with default chunk sizing (use one of the sample JPGs in repo root)
+python3 -m holo flower.jpg
 
 # encode with target chunk size around 32 KB
-python3 -m holo image.png 32
+python3 -m holo flower.jpg 32
 
-# decode from the holographic directory back to an image
-python3 -m holo image.png.holo
+# decode from the holographic directory back to an image (trailing slash ok)
+python3 -m holo flower.jpg.holo      # or: python3 -m holo flower.jpg.holo/
 
 # audio (PCM WAV)
 python3 -m holo track.wav 32
@@ -228,13 +228,13 @@ from holo.codec import (
 )
 
 # encode several frames of the same scene into independent holographic fields
-encode_image_holo_dir("t0.png", "t0.png.holo", target_chunk_kb=32)
-encode_image_holo_dir("t1.png", "t1.png.holo", target_chunk_kb=32)
-encode_image_holo_dir("t2.png", "t2.png.holo", target_chunk_kb=32)
+encode_image_holo_dir("flower.jpg", "flower.jpg.holo", target_chunk_kb=32)
+encode_image_holo_dir("galaxy.jpg", "galaxy.jpg.holo", target_chunk_kb=32)
+encode_image_holo_dir("no-signal.jpg", "no-signal.jpg.holo", target_chunk_kb=32)
 
 # later, reconstruct and stack them as a "photon collector"
 stack_image_holo_dirs(
-    ["t0.png.holo", "t1.png.holo", "t2.png.holo"],
+    ["flower.jpg.holo", "galaxy.jpg.holo", "no-signal.jpg.holo"],
     "stacked_recon.png",
     max_chunks=16,   # optional: limit chunks per exposure
 )
@@ -255,19 +255,20 @@ import holo
 
 # pack several objects into one holographic field
 holo.pack_objects_holo_dir(
-    ["image1.jpg", "image2.jpg", "track.wav"],
+    ["flower.jpg", "galaxy.jpg", "track.wav"],
     "scene.holo",
     target_chunk_kb=32,
 )
 
 # later, reconstruct individual objects by index
 holo.unpack_object_from_holo_dir("scene.holo", 0,
-                                 output_path="image1_rec.png")
+                                 output_path="flower_rec.png")
 holo.unpack_object_from_holo_dir("scene.holo", 1,
-                                 output_path="image2_rec.png")
+                                 output_path="galaxy_rec.png")
 holo.unpack_object_from_holo_dir("scene.holo", 2,
                                  output_path="track_rec.wav")
 ```
+Tip: choose an `output_path` extension that matches the object type. Saving an image to `.wav` (or vice versa) will raise an error.
 
 In this layout the residuals of all objects live on a single golden-ratio trajectory. Any surviving chunk contributes information about every object. If chunks are lost, all members of the pack become slightly blurrier or more lo-fi, but all remain decodable. The field behaves like a shared perceptual tissue rather than a bag of independent files.
 
@@ -279,7 +280,6 @@ A `Field` instance tracks which chunks are present for a given `content_id`, rep
 
 ```python
 from holo.field import Field
-from PIL import Image
 
 f = Field(content_id="demo/image", chunk_dir="image.png.holo")
 
@@ -287,8 +287,8 @@ summary = f.coverage()
 print("present blocks:", summary["present_blocks"],
       "out of", summary["total_blocks"])
 
-img = f.best_decode_image()
-Image.fromarray(img).save("image_best.png")
+img_path = f.best_decode_image()  # writes image.png_recon.png
+print("best decode saved to", img_path)
 
 f.heal_to("image_healed.holo", target_chunk_kb=32)
 ```
@@ -413,14 +413,6 @@ The `examples/` directory contains self-contained scripts:
 - `heal_demo.py` damages a field, then uses `Field.heal_to` to regenerate a clean holographic population.
 - `mesh_loopback.py` simulates two UDP peers exchanging holographic chunks by `holo://` content ID and decoding on the receiver.
 
-GUI demo (no deps):
-
-- `examples/node-gui/` serves a small HTML UI that previews the outputs of the scripts above. Start it after running the Python scripts so the images exist:
-  ```bash
-  node examples/node-gui/server.js
-  # open http://localhost:3000
-  ```
-
 Quick run (from repo root):
 
 ```bash
@@ -437,7 +429,13 @@ python3 examples/heal_demo.py
 python3 examples/mesh_loopback.py
 ```
 
-Outputs land in `examples/out/` (plus `examples/data/` for generated inputs). Each script prints the produced files so you can open them and compare.
+What you get:
+- `encode_and_corrupt.py` → `examples/out/gradient.holo` and `gradient_recon.png`.
+- `pack_and_extract.py` → `examples/out/scene.holo` (packed), plus `stripes_recon.png` from the damaged field.
+- `heal_demo.py` → `examples/out/healing_degraded.png`, `healing_healed.holo`, `healing_healed.png`.
+- `mesh_loopback.py` → sender writes `examples/out/spiral.holo`, receiver reconstructs `examples/out/spiral_mesh_recon.png` addressed by `holo://demo/spiral`.
+
+All inputs the scripts need are under `examples/data/`; outputs land in `examples/out/`. Each script prints the paths it writes so you can open them quickly.
 
 ---
 

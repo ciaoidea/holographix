@@ -50,7 +50,7 @@ def _parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = _parse_args(argv)
-    path = args.path
+    path = os.path.normpath(args.path)
 
     if os.path.isdir(path) and path.lower().endswith(".holo"):
         mode = holo.detect_mode_from_chunk_dir(path)
@@ -89,4 +89,3 @@ def main(argv: Optional[list[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

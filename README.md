@@ -313,4 +313,4 @@ Analogous experiments for audio can use SNR or perceptual measures (future direc
 
 ## Reference
 
-A. Rizzo, *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. DOI: 10.4236/apm.2023.139038
+A. Rizzo, *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. [DOI: 10.4236/apm.2023.139038](https://doi.org/10.4236/apm.2023.139038)

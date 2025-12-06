@@ -477,6 +477,38 @@ If you care about interaction realism (prosody, facial motion, affect), it is al
 
 <img width="1280" height="800" alt="image" src="https://github.com/user-attachments/assets/e8c700f2-e5b6-424b-a848-a230294e8269" />
 
+---
+
+
+## `holo://object`: addressing shared fields in the Holographix agent network
+
+In Holographix, a network of agents and Large Media Models talks by reading and writing shared holographic fields. `holo://` is the scheme; the part that follows is the application-level name of one such field:
+
+```text
+holo://object
+````
+
+From the library’s point of view, the entire string `holo://object` is opaque. The helper `content_id_bytes_from_uri` maps it deterministically to a fixed-length `content_id`. That `content_id`, plus a `chunk_id`, is what actually travels on the wire and what the mesh stores, gossips, and replicates.
+
+The “object” named here is whatever the system treats as one holographic content field. It can be a single image, a stack of frames, an audio track, a packed group of media, or a derived product such as a global dust map or a learned state that a Large Media Model uses internally. All chunks that belong to that field share the same `content_id` and differ only by `chunk_id`.
+
+For example, a Mars rover might publish a navcam frame as
+
+```text
+holo://mars/rover-7/navcam/frame/sol-1234
+```
+
+and a derived dust-density field as
+
+```text
+holo://mars/global/dust-field/daily-avg-2034-01-12
+```
+
+In both cases the agent network sees the same pattern: a name `holo://object` is turned into a `content_id`, and a population of holographic chunks for that `content_id` is diffused through the mesh. Any agent or Large Media Model that knows the same `holo://object` name and receives some subset of its chunks can reconstruct a usable percept or state for that object, because fine detail has already been spread holographically across the chunk population.
+
+```
+
+
 
 ---
 

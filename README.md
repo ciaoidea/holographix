@@ -1,155 +1,122 @@
 # Holographix
-
 Holographic media and networking for resilient, extreme connectivity
 
-Holographix (from "holographic information matrix") is a resilient, awareness-oriented network built on top of a holographic codec and a UDP transport. It is meant as a perceptual substrate for large sensory models — LVMs (Large Vision Models) and LVAs (Large Audio Models) — running over networks that behave like reality, not like a clean lab: loss, jitter, reordering, duplication, fading links, mobility.
+Holographix (“holographic information matrix”) is a field-centric codec and UDP substrate for sensory content—RGB images and PCM WAV audio—meant to keep *useful percepts* alive on networks that behave like reality: loss, jitter, reordering, duplication, fading links, mobility. The design target is not “reliable delivery of every bit”; it is “maximum perceptual utility per bit that survives”, under quickly changing conditions, with an anytime reconstruction path that improves as fragments arrive.
 
-At the lowest layer, the `holo` codec turns images and audio into holographic chunks that can be recombined from almost any subset. On top of that, `holo.net` pushes those chunks across harsh UDP links. Above both, the Holographix layer (`holo.field`, `holo.cortex`, `holo.net.mesh`, `holo.net.arch`) treats chunk clouds as shared perceptual fields that many nodes can read from and write to.
-
-The core question is: how do you keep useful information alive when the network is temporary, damaged or improvised, and when the classic idea of a reliable stream between two fixed endpoints is more fiction than reality?
-
-The aim is not to deliver every bit. The aim is to maximise the quality of the percept per bit that actually survives, under changing loss, latency, noise and mobility. The system is built to adapt to the environment in the same way living tissue does: by distributing structure, not by pretending the medium is perfect.
-
-Current scope: RGB images and PCM WAV audio. Generic opaque binaries are deliberately out of focus for now, because they usually need strict erasure coding rather than graceful blur.
+If you are building systems where perception must continue during impairment—robots, remote presence, ad‑hoc mesh links, disaster networks, radios—Holographix treats the medium as damaged by default and makes degradation graceful instead of catastrophic. It is explicitly tuned for the continuous, redundant regime where Large Vision Models (LVMs) and Large Audio Models (LVAs) operate: missing evidence should reduce fidelity or confidence, not force a stall.
 
 ---
 
-## Origin: life, radios and the shape of resilience
+## Paradigm: from streams to fields
 
-Holographix did not start from networking textbooks; it started from a very old human experience. Lying in bed at three years old, listening to Neil Diamond's "Song Sung Blue" on a bedside radio, the memory that survived was not a waveform. It was a pattern of melody, rhythm and emotion that stayed intact through decades of noise, forgetting and change. Biology does something remarkable here: it keeps meaning alive even when almost all physical detail has been lost.
+Classic transport abstractions are endpoint-centric: a stream between two addresses that aims for completeness in order and blocks when completeness cannot be guaranteed. That mental model is a good fit for programs and symbolic objects where “slightly wrong” often means “invalid”.
 
-Years later, in the basement of a country house in Villetta Barrea near Rome, a dusty shortwave tube radio brought that intuition into hardware. The set was older than I was; when its tubes lit up it pulled voices out of a noisy, unstable ether. The signal faded, warped, picked up static and drifted in frequency, yet the message remained accessible because the receiver and the brain behind it were built to infer from partial evidence, not to demand perfect samples.
+Perceptual content lives in a different regime. Images and audio have structure spread across space and time; you can lose samples and still have a coherent scene or phrase. Holographix takes that as a specification: represent sensory content as a *field* such that almost any subset of contributions yields a globally consistent reconstruction whose quality grows smoothly with received information.
 
-A CB radio then opened the door to amateur radio, a callsign (IK2TYW), and eventually physics. On HF and VHF, working the MIR space station and Russian polar satellites such as RS-10, RS-11 and RS-12, the contrast became very sharp. Digital protocols on clean cables expect a perfect packet or nothing, and they block on a single missing fragment. Analog links and human perception do the opposite: they accept that reality is broken and move on, degrading gracefully instead of collapsing.
-
-The design of Holographix takes that pattern as a specification. The resilience we want from the codec and from the network is not a generic robustness metric; it is the same structure that keeps a living system recognisable while its material is constantly replaced. A song in memory, a face through rain on a window, a voice across static: the form that survives is the life of the information. The project tries to encode that form into bytes and UDP packets.
+In Holographix, the network does not “rescue” a brittle representation. The representation itself is built so that survival of *any subset* is meaningful.
 
 ---
 
-## Perception, language and emotional AI
+## What is implemented (current scope)
 
-Modern neural systems do not think in a single way. Large language models work in a discrete, symbolic regime. They process sequences of tokens where a misplaced or missing element can flip a truth value, break a program, corrupt a JSON document or destroy a chain of reasoning. Their inference is sensitive to discrete jumps: a single error can push the system into a completely different state. For this kind of object, there is no clean notion of "slightly wrong"; syntactic or logical validity is often all-or-nothing.
+Holographix is currently focused on sensory signals:
 
-Vision and audio models live in a different regime. They act on continuous fields with strong redundancy: spatial structure, temporal continuity, spectral smoothness, motion constraints, cross-modal correlations. When evidence is missing, they typically lose resolution or confidence, but the scene, the gesture or the phrase often remain recognisable. A face can be detected under rain; a word can be understood through noise; a rhythm can be followed even if half the samples are gone. This is not a miracle; it is the signature of a field-like representation where information about the whole is spread across many parts.
+Images are handled as RGB arrays, with a model that generates a coarse approximation and an `int16` residual that carries fine detail.
 
-Holographix is deliberately tuned to this sensory regime. It is designed as a substrate where LVMs and LVAs can keep working in an anytime fashion. At any moment, the `Field` layer can offer a "best current percept" reconstructed from whatever chunks are present. If more fragments arrive later, reconstruction improves, but the models do not need to stop and wait for perfection. This is exactly the kind of behaviour that makes emotional interaction possible. A system that estimates affect from prosody, gesture, timing or facial motion does not need bit-perfect data; it needs continuity of experience. Hard stalls and file-level corruption introduce discontinuities that feel emotionally wrong. Smooth degradation of audio and video keeps the prosodic and visual contours intact enough that an "emotional AI" can track what matters without hallucinating sudden jumps that are artefacts of the transport.
+Audio is handled as PCM WAV via the Python standard library `wave`, again with a coarse approximation plus an `int16` residual carrying fine detail.
 
-The psychological and emotional resilience of the network is therefore not a marketing slogan. It is an architectural constraint: preserve the continuity of perceptual fields under loss, because that is where meaning and emotion live for humans and for any AI that tries to share a world with them.
-
----
-
-## Fields, morphogenesis and morphic intuition
-
-In developmental biology, the term "morphogenetic field" has a precise and non-mystical meaning. It describes the distributed patterning influences that guide the formation of tissues and organs. No single cell contains the plan for a limb; the pattern emerges from gradients, signals and constraints spread out in space and time. If parts are removed, the field can often reconfigure and still produce a recognisable structure. The key idea is that form is stored in a field of relations, not in a single point.
-
-Rupert Sheldrake pushed this intuition much further with his notion of "morphic fields" and "morphic resonance": immaterial fields that would connect patterns of form and behaviour across individuals and history. That proposal is controversial and lies well outside standard physics and biology. Holographix does not rely on any non-material influence; it stays firmly inside explicit data structures, code and measurable behaviour.
-
-What survives from that family of ideas is the picture of form as an attractor sustained by a population. Holographix treats each piece of perceptual content as a field in exactly that engineering sense. A chunk is not a local brick that "owns" a region of the image or of the sound. It is a sample of a global orbit through the residual field. The total population of chunks, plus the deterministic reconstruction rule, define a state that tends to come back to the same percept even when many pieces are missing. When content is re-encoded, replicated and healed, the network is effectively making that percept easier to re-evoke from fragments. That is a very mundane, falsifiable form of resonance, but it carries the same intuitive flavour: patterns that have been reinforced by use are the ones that reappear quickly when the world is incomplete.
-
-In this sense, the holographic codec and the mesh layer implement a digital, testable version of a morphic field: a structure whose essence is to keep meaning alive by distributing it and by letting partial traces cooperate, instead of relying on a single fragile copy.
+Opaque arbitrary binaries are intentionally out of scope for now. Most binary formats are not meaningful under graceful blur and typically require strict erasure coding; Holographix is about perceptual continuity rather than bitwise equivalence under all failure modes.
 
 ---
 
-## The golden rule: why interleaving is golden
+## Layering model (codec, transport, field)
 
-When you look at how living structures occupy space, you repeatedly encounter arrangements that are neither perfectly regular nor obviously aligned: spirals in plants, seed patterns, branching angles. The interest is not in mysticism or numerology; the interest is in the fact that certain proportions make it easy to fill space without privileging directions and without creating short cycles. The golden ratio is the simplest of these proportions.
+A useful way to read the repository is as three cleanly separated layers:
 
-Holographix uses the golden ratio to decide how the fine structure of a signal is threaded into chunks. The idea is to flatten the residual into a one-dimensional line and then walk that line with a step that is maximally "incommensurate" with the length. Each step jumps to a new position; the orbit visits every index once before repeating. If you then cut that orbit into several interleaved strands, each strand becomes a representative sample of the whole. Each chunk is a phase slice of that orbit.
+The `holo` codec produces *holographic chunks*: individually useful contributions that can be recombined from almost any subset.
 
-Formally, the golden ratio is introduced from the simplest definition. Consider a whole segment and split it into a larger part and a smaller part. The golden condition is
+`holo.net` moves those chunks across harsh UDP links. It frames, segments, reassembles, and keeps chunk identity separate from socket endpoints.
+
+The Holographix “field” layer (`holo.field`, with higher-level planning in `holo.net.mesh` and identity helpers in `holo.net.arch`) treats the set of chunks as a shared perceptual substrate that many nodes can read and write, with local reconstruction and policy-driven healing.
+
+A compact view of roles is captured by the mapping below; it is an analogy used as an engineering compass, not as biology as physics:
+
+| Component | Engineering role | Informal mapping |
+|---|---|---|
+| `codec` | deterministic representation rules (formats, interleaving, versioning) | genotype |
+| `field` | best current reconstruction from surviving fragments | phenotype |
+| `cortex` | persistence, aging, deduplication, integrity checks | tissue |
+| `mesh` | circulation, gossip, opportunistic replication | ecology |
+| `arch` | identity and compatibility (`holo://...` → content identifiers) | receptors |
+| `transport` | UDP framing, segmentation, reassembly | impulses |
+
+---
+
+## The holographic codec in one equation
+
+Every encoded signal is split into a coarse component and a residual:
 
 ```text
-whole : larger  =  larger : smaller
+residual = original - coarse_up
 ````
 
-If the whole has length 1, the larger part has length x and the smaller part has length (1 − x), the condition becomes
+`coarse_up` is the coarse approximation upsampled back to the original resolution/length. The residual carries high-frequency detail. The codec stores the coarse representation plus a permuted, distributed residual across many chunks so that losing chunks reduces detail rather than invalidating the decode.
+
+Decoding is the same physical idea in reverse: reconstruct coarse; allocate residual filled with zeros; write received residual samples into their positions; missing samples remain zero; add residual back to coarse with clipping. With all chunks present, reconstruction is exact or close (depending on the selected model and compression settings). With a subset, reconstruction remains globally coherent and degrades smoothly.
+
+---
+
+## Golden-ratio interleaving (why it exists, what it guarantees)
+
+If you cut the residual into contiguous blocks, you get brittle locality: lose one block and you lose one region or one time segment. Holographix instead spreads residual samples along a deterministic orbit so that every chunk samples the *entire* signal.
+
+Let the flattened residual be a 1‑D array of length `N`. Define the golden ratio:
 
 ```text
-1 / x = x / (1 − x)
-x^2 + x − 1 = 0
-x = (sqrt(5) − 1) / 2  ≈  0.618033...
+phi = (1 + sqrt(5)) / 2  ≈ 1.618033...
+1/phi = phi - 1          ≈ 0.618033...
 ```
 
-The classical golden ratio is
+Choose a discrete rotation step close to `N/phi` and adjust it until it is coprime with `N`:
 
 ```text
-phi = (1 + sqrt(5)) / 2  ≈  1.618033...
-phi − 1 = 1 / phi  ≈  0.618033...
-```
-
-Once the residual is flattened into a one-dimensional array of length `N`, the codec turns the golden fraction into a discrete rotation step:
-
-```text
-step ≈ (phi − 1) * N   (i.e. N / phi)
-```
-
-The step is then adjusted so that
-
-```text
+step ≈ N/phi
 gcd(step, N) = 1
 ```
 
-which guarantees a single full cycle. The permutation is
+Then define a full-cycle permutation:
 
 ```text
 perm[i] = (i * step) mod N
 ```
 
-If the residual is split into `B` chunks, chunk `b` takes the subsequence
+If `B` chunks are produced, chunk `b` takes a strided subsequence of this orbit:
 
 ```text
 perm[b], perm[b + B], perm[b + 2B], ...
 ```
 
-Every chunk therefore samples the residual line in a quasi-uniform way instead of cutting out a contiguous block.
-
-Intuitively, this is where the connection to living resilience becomes sharp. The golden orbit is the skeleton of a digital morphogenetic field. No chunk owns a local piece of anatomy; every chunk participates in the same global spiral. When some chunks are lost, the effect is like damaging tissue: the organism becomes less detailed, but its body plan persists. When chunks are regenerated and recirculated, the same form tends to re-emerge, because the way information is spread makes it hard to kill the pattern with a small number of blows.
-
-The golden interleaving is therefore not a decorative choice. It is the concrete structure that makes "graceful degradation" the default behaviour of the codec.
+The practical claim you can test is not mystical: quality should be primarily a function of “how many samples arrived”, not “which chunk IDs arrived”. A good holographic layout yields low variance across random subsets of equal size, and degrades without catastrophic discontinuities.
 
 ---
 
-## How the holographic codec works in practice
-
-For both images and audio, the codec follows a simple physical pattern.
-
-First it builds a coarse approximation of the signal. For an image, this is typically a small thumbnail that is then resized back to the original resolution. For audio, it is a subsampled version of the track, interpolated back to full length. This coarse layer captures the global structure: geometry and colour layout for images, envelope and slow variations for audio.
-
-Then, in signed integer space, it computes a residual:
-
-```text
-residual = original - coarse_up
-```
-
-This residual carries the fine detail that is missing from the coarse view. It is flattened into a one-dimensional array, threaded along the golden permutation described above, and split across a chosen number of chunks. Each chunk carries the coarse representation plus its share of the permuted residual.
-
-Decoding reverses the process. The decoder reads any chunk that is available, reconstructs the coarse, allocates a residual array filled with zeros, regenerates the same golden permutation, writes received residual samples into their positions, leaves missing samples at zero, reshapes back to the original geometry and adds the residual to the coarse approximation with clipping to the valid range. When all chunks are present, the reconstruction is exact or very close, depending on the model and on compression. When only a subset is present, the reconstruction is globally coherent but blurrier or more lo-fi. The important part is that there is no catastrophic break: format decoders still see valid images and audio, and perceptual models still see recognisable scenes and phrases.
-
----
-
-## Architecture and package layout
-
-The repository is organised as a small Python package centred on the `holo` namespace. The goal is to keep responsibilities separated: codec math, field logic, storage and network transport each live in their own module.
-
-The core tree looks like this:
+## Repository structure
 
 ```text
 holo/
   __init__.py        public API for image/audio encode-decode,
                      multi-object packing and Field
 
-  __main__.py        command line entry point,
-                     argument parsing and dispatch only
+  __main__.py        CLI entry point: argument parsing and dispatch only
 
   codec.py           single-signal codec:
                      chunk formats, headers, versioning,
                      compression and golden interleaving
 
   container.py       multi-object packing:
-                     one holographic store can contain many objects,
-                     each with its own coarse layer
+                     one holographic store can contain many objects
 
-  field.py           local field representation for one content_id:
+  field.py           local field for one content_id:
                      ingest chunks, track coverage, decode best view,
                      perform healing
 
@@ -159,64 +126,45 @@ holo/
     visual.py        convenience helpers for visual experiments
 
   models/
-    __init__.py      small registry that picks the right model
+    __init__.py      registry that selects a signal model
     image.py         image model: coarse thumbnail + int16 residual
     audio.py         audio model: coarse subsampling + int16 residual
 
   net/
-    __init__.py      namespace for networking
-    transport.py     UDP framing, segmentation and reassembly
+    __init__.py      networking namespace
+    transport.py     UDP framing, segmentation, reassembly
     arch.py          helpers for holo:// URIs and content identifiers
-    mesh.py          peer overlay, gossip and chunk replication
+    mesh.py          peer overlay, gossip and chunk replication policy
 ```
 
-The codec does not know about UDP or fields. The transport does not know about thumbnails or residuals. The field logic does not know about sockets. This is deliberate: Holographix is meant as a set of clean layers, not as one tangled script.
-
-## The biology / subtle mind mapping
-
-Holographix is not a neuron-by-neuron simulation of a brain, but its structure is deliberately shaped as a toy model of a subtle mind in nature: a distributed pattern that keeps forms, habits and meanings alive by circulating traces through a medium. The mapping is there as a compass to keep that analogy honest:
-
-```text
-codec     = genotype     (chunk format, versioning, golden interleaving rules)
-field     = phenotype    (best current reconstruction from surviving chunks)
-cortex    = tissue       (local storage, aging, dedup, integrity checks)
-mesh      = ecology      (circulation, gossip, opportunistic replication)
-arch      = receptors    (identity: holo://... -> content_id, compatibility)
-transport = impulses     (UDP framing/segmentation/reassembly)
-````
-
-The codec plays the role of a genetic code: deterministic, versioned math that defines how information can exist at all in this world. The Field is the living configuration at a given moment, the phenotype of a piece of content under the current conditions. Cortex is the tissue that remembers and forgets, where traces are stored, aged and cleaned up. Mesh is the wider environment where those traces move, meet, reinforce or fade. Arch is the interface layer, the receptors that decide which patterns can bind to which identities. Transport is the spike traffic, the impulses that actually carry fragments around.
-
-“Healing” belongs to Field and Cortex, not to the codec. The codec does not improvise; it just encodes and decodes according to its rules. Healing is policy: when to regenerate a new population of chunks from the current percept, where to replicate them in the ecology, when to ask the network for missing fragments. In that sense the “subtle mind” of the system does not live in a single place; it lives in the loop formed by genotype, phenotype, tissue and ecology, exactly as it does in natural systems.
+The separation is deliberate. The codec does not depend on sockets. The transport does not depend on thumbnails or waveforms. The field logic does not depend on networking primitives. That boundary is what lets you alter mesh policy without touching codec math, and evolve models without rewriting packet transport.
 
 ---
 
 ## Installation
 
-You need a recent Python 3 interpreter together with NumPy and Pillow.
+A recent Python 3 with NumPy and Pillow is sufficient for images.
 
 ```bash
 git clone https://github.com/ciaoidea/Holographix.io.git
 cd Holographix.io
 
 python3 -m venv .venv
-source .venv/bin/activate      # on Windows: .venv\\Scripts\\activate
+source .venv/bin/activate      # on Windows: .venv\Scripts\activate
 
 pip install numpy pillow
 ```
 
-Audio support relies on the standard library `wave` module. Networking uses only the Python standard library for sockets and struct packing together with the code in `holo.net`.
+Audio uses the standard library `wave`. Networking uses the standard library `socket` and `struct` plus the modules under `holo.net`.
 
 ---
 
-## Quick start with the codec
+## Quick start (CLI)
 
-The simplest way to use the codec is to work with a single image or audio file and its corresponding `.holo` directory.
-
-From the command line:
+Encoding produces a `.holo` directory containing `chunk_XXXX.holo` files.
 
 ```bash
-# encode an image into holographic chunks with default sizing
+# encode an image with default chunk sizing
 python3 -m holo image.png
 
 # encode with target chunk size around 32 KB
@@ -225,14 +173,16 @@ python3 -m holo image.png 32
 # decode from the holographic directory back to an image
 python3 -m holo image.png.holo
 
-# encode and decode audio (PCM WAV)
+# audio (PCM WAV)
 python3 -m holo track.wav 32
 python3 -m holo track.wav.holo
 ```
 
-After encoding you will find a directory such as `image.png.holo` or `track.wav.holo` containing `chunk_XXXX.holo` files. Removing some of these chunks and decoding again lets you observe the graded reconstruction behaviour: fewer chunks give a blurrier image or a more noisy audio track, but the result remains globally coherent.
+To observe graded reconstruction, delete or move some `chunk_*.holo` files and decode again. The output should remain valid and globally coherent, with reduced detail.
 
-As a Python module:
+---
+
+## Quick start (Python)
 
 ```python
 import holo
@@ -250,23 +200,19 @@ holo.decode_audio_holo_dir("track.wav.holo", "track_recon.wav")
 
 ---
 
-## Multi-object holographic storage
+## Multi-object holographic storage (containers)
 
-When several images and audio tracks belong to the same conceptual object, it is often more natural to store them in a single holographic field rather than in separate directories. The container module implements this by keeping the coarse representation of each object as if it were encoded alone, concatenating all residual vectors, and interleaving them along one long golden trajectory. Each chunk then carries the complete set of coarse bytes and a different slice of the combined residual.
-
-With the Python API:
+When several sensory objects belong to the same conceptual entity, it is often preferable to store them in one holographic field so that loss degrades them *collectively* rather than destroying one file while leaving another perfect. The container module does this by concatenating residual vectors and interleaving them along one long golden trajectory, while carrying the coarse representation for each object as metadata.
 
 ```python
 import holo
 
-# pack several objects into one holographic field
 holo.pack_objects_holo_dir(
     ["image1.jpg", "image2.jpg", "track.wav"],
     "pack1.holo",
     target_chunk_kb=32,
 )
 
-# later, reconstruct individual objects by index
 holo.unpack_object_from_holo_dir("pack1.holo", 0,
                                  output_path="image1_rec.png")
 holo.unpack_object_from_holo_dir("pack1.holo", 1,
@@ -275,15 +221,13 @@ holo.unpack_object_from_holo_dir("pack1.holo", 2,
                                  output_path="track_rec.wav")
 ```
 
-When chunks are missing, all objects degrade slightly but remain coherent. The field behaves like a small concept cloud: losing fragments reduces detail across the whole cloud, not by randomly erasing one object while leaving another perfect.
+The resulting behaviour is “concept-cloud like”: losing fragments reduces detail across the whole pack, instead of randomly annihilating a single member.
 
 ---
 
-## Fields and healing
+## Fields and healing (local metabolism)
 
-A `Field` instance is the local "metabolism" around one holographic directory. It knows which chunks are present, can estimate coverage and can decode the best view it can produce from the current subset. This is the place where the "life" of the information actually plays out.
-
-Example usage:
+A `Field` instance tracks which chunks are present for a given `content_id`, reports coverage, and can decode the best current percept at any time.
 
 ```python
 from holo.field import Field
@@ -301,15 +245,15 @@ Image.fromarray(img).save("image_best.png")
 f.heal_to("image_healed.holo", target_chunk_kb=32)
 ```
 
-Healing does not recreate lost information. It takes the best available reconstruction, re-encodes it into a fresh holographic directory, and restores a clean distribution of coarse and residual data. This prevents slow entropic decay when chunks are progressively lost and ensures that the field stays usable over long time scales.
+Healing is policy, not magic. It does not recreate missing information. It takes the best currently reconstructable percept, re-encodes it into a fresh holographic population, and restores a clean distribution of coarse and residual data. The purpose is to prevent slow entropic decay when fragments are lost over time and to keep the field usable under long-lived impairment.
 
 ---
 
 ## UDP transport and mesh
 
-The UDP transport in `holo.net.transport` is intentionally minimal. It knows about three things: a content identifier, a chunk identifier and how to split and reassemble chunks into UDP packets. It does not know about images, audio or containers; it treats all chunks as opaque byte strings.
+`holo.net.transport` frames each chunk with identifiers, then segments it into UDP datagrams and reassembles it on the receiver. It treats chunks as opaque bytes and does not depend on image/audio semantics.
 
-A very simple sending loop looks like this:
+A minimal sender:
 
 ```python
 import socket
@@ -329,36 +273,39 @@ for chunk_id, path in enumerate(sorted(glob.glob("image.png.holo/chunk_*.holo"))
     send_chunk(sock, addr, content_id, chunk_id, chunk_bytes, max_payload=1200)
 ```
 
-On the receiving side you can feed incoming packets into a `Reassembler` and write complete chunks out to a directory. Above this raw transport, the mesh layer in `holo.net.mesh` adds simple gossip about which content IDs are present where, and decides which chunks to repeat under which conditions. The design goal is to keep policies small and explicit so that different robots or agents can adopt different replication strategies while reusing the same codec and packet format.
+Above raw transport, `holo.net.mesh` adds gossip about which content IDs exist where and decides what to replicate and repeat. The intended style is that mesh policy remains small and explicit so different agents can adopt different replication strategies while reusing the same codec and framing.
 
-The important qualitative difference compared to plain TCP and UDP can be stated in words. A TCP stream gives you strong guarantees about ordering and completeness but can stall or collapse entirely on bad links. A bare UDP socket gives you raw datagrams and no guarantees at all; robustness is entirely your problem. Holographix over UDP pushes robustness into the representation itself. Every chunk is a valid contribution to a perceptual field, and any subset of chunks produces a globally consistent reconstruction whose quality grows smoothly with the number of fragments received.
-
----
-
-## Resilience experiments
-
-The behaviour of a holographic layout can be measured in a straightforward way. Pick an image, encode it into a fixed number of chunks, and for each possible number of surviving chunks draw many random subsets, reconstruct and measure mean squared error or PSNR against the original. A good holographic layout shows two features: the mean quality improves smoothly with the number of chunks, and the variance across subsets with the same size stays very small. That means chunks are genuinely interchangeable and quality depends mostly on how many fragments survived, not on which specific ones.
-
-The same strategy applies to audio with signal-to-noise ratio or perceptually inspired measures. These experiments turn the intuitive picture of "living tissue that degrades gracefully" into quantitative curves you can compare between codec variants.
+A practical note for harsh links: UDP segmentation turns one logical chunk into many datagrams. On lossy links, “receive the entire chunk” can become significantly less likely than “receive most datagrams”. A field-centric evolution path is therefore to make the smallest network contribution coincide with the smallest decodable contribution, so partial arrivals still improve the percept. The repository keeps codec and transport separate precisely to allow that evolution without entangling math and sockets.
 
 ---
 
-## Einstein's diagram and where Holographix lives
+## Measuring resilience (turning intuition into curves)
 
-In a letter to his friend Maurice Solovine dated May 7th, 1952, Albert Einstein drew a small diagram to answer the question "What is science?". Along the bottom he placed a horizontal line marked E, for immediate experiences, the empirical basis. Higher up he placed another line marked A, for the axioms and basic concepts of a theory. From A down to E he drew slanting lines labelled S1, S2 and so on, representing particular statements and predictions deduced from the axioms and tested against experience.
+A holographic layout is not a vibe; it is measurable. Fix an input signal, encode into `B` chunks, then for each `k` in `[1..B]` draw many random subsets of size `k`, decode, and measure quality against the original. For images, PSNR/MSE are a reasonable first pass. For audio, SNR is a baseline and perceptual measures can be added if needed.
 
-The important claim in that letter is that there is no logical machine that takes you from E up to A. The passage from raw experience to axioms requires an intuitive, extra-logical, psychological leap. Once you have chosen your axioms, you can derive statements, compare them with observations and keep or discard your theory. But the real game is played at the level of A, where you decide which concepts you are going to use to see the world. For that reason Einstein did not draw a sharp boundary between science and philosophy. Both live in the space of possible conceptual schemes.
+Two expected signatures indicate genuine interchangeability: mean quality improves smoothly with `k`, and variance across subsets at fixed `k` stays small. When those hold, quality depends mostly on how many fragments survived rather than on which specific identifiers survived.
 
-Holographix is very explicit about the fact that it is a choice at that level. At the E level we have packets on the wire, bit errors, microphone samples, camera pixels, robot positions. The project does not pretend to deduce its main ideas from these raw data. Instead it chooses a small set of axioms: that perceptual content should be represented as fields rather than as brittle objects, that resilience of meaning is not an afterthought but the primary structure, that a golden interleaving is a good way to spread fine detail, that content should be addressed by identity rather than by host location, and that psychological and emotional coherence in interactions is a legitimate design target.
-
-From these axioms follow all the more concrete statements of the system: holographic chunks, graded reconstruction, healing, mesh behaviour, and the way LVMs and LVAs can sit on top of `Field` to keep updating their beliefs under loss. These statements can be tested in practice on radios, robots and unstable networks. The diagram is a reminder that the deepest part of the design is not the code that does interpolation or the specific headers on the wire, but the decision to treat information as a living field whose purpose is to keep meaning alive.
+If you care about interaction realism (prosody, facial motion, affect), it is also worth measuring reconstruction stability as fragments arrive in time with burst loss and reordering. The goal is not only “good after enough data”, but “continuous without spurious discontinuities during acquisition”.
 
 ---
 
-## References and lineage
+## Conceptual lineage (kept explicit and testable)
 
-The mathematical use of the golden ratio in the sampling of residuals is informed by work such as A. Rizzo, "The Golden Ratio Theorem", Applied Mathematics, 14(09), 2023, which shows how golden-ratio steps yield near-uniform coverage when sampling.
+Holographix borrows language from biology—morphogenesis, fields, healing—because it describes a distributed pattern that remains recognisable under constant material loss. The implementation stays strictly within explicit data structures and deterministic reconstruction rules; no non-material mechanism is assumed.
 
-The use of the language of morphogenetic and morphic fields is inspired by classical developmental biology and by Rupert Sheldrake's proposals on morphic resonance, but the implementation here stays strictly within standard digital communication and signal processing.
+The use of golden-ratio steps is an engineering technique for near-uniform sampling under modular rotation, chosen to spread residual detail globally with low bookkeeping.
 
-The reflection on where this kind of design lives in the space of ideas follows the spirit of Einstein's 1952 letter to Maurice Solovine on the relation between experience, axioms and scientific concepts.
+The project also adopts a methodological stance: the deepest design work happens at the level of chosen concepts and axioms (representation as fields, identity addressing, graded reconstruction) and is then tested by concrete experiments on impaired networks.
+
+---
+
+## References
+
+A. Rizzo, “The Golden Ratio Theorem”, *Applied Mathematics*, 14(09), 2023.
+
+A. Einstein, letter to Maurice Solovine (May 7, 1952), on the relation between experience, axioms, and scientific concepts.
+
+
+
+
+

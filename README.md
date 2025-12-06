@@ -1,5 +1,5 @@
 # Holographix
-Holographic media and networking for resilient, extreme connectivity
+Holographix is a holographic, matrix-based media and networking substrate engineered for resilient, extreme connectivity.
 
 Holographix (“holographic information matrix”) is a field-centric codec and UDP substrate for sensory content—RGB images and PCM WAV audio—meant to keep *useful percepts* alive on networks that behave like reality: loss, jitter, reordering, duplication, fading links, mobility. The design target is not “reliable delivery of every bit”; it is “maximum perceptual utility per bit that survives”, under quickly changing conditions, with an anytime reconstruction path that improves as fragments arrive.
 

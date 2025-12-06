@@ -475,6 +475,9 @@ Two expected signatures indicate genuine interchangeability: mean quality improv
 
 If you care about interaction realism (prosody, facial motion, affect), it is also worth measuring reconstruction stability as fragments arrive in time with burst loss and reordering. The goal is not only “good after enough data”, but “continuous without spurious discontinuities during acquisition”.
 
+<img width="1277" height="733" alt="image" src="https://github.com/user-attachments/assets/e8c700f2-e5b6-424b-a848-a230294e8269" />
+
+
 ---
 
 ## Conceptual lineage (kept explicit and testable)

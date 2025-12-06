@@ -269,7 +269,7 @@ stack_image_holo_dirs(
 
 <p align="center">
   <img width="1280" height="800" alt="image" src="https://github.com/user-attachments/assets/c2b939d1-8911-4381-8bd7-a93e29f5401c" /><br/>
-  <em>Holographix photon-collector mode: building high-resolution reconstructions from multiple <code>holo://object</code> exposures.</em>
+  <em>Holographix photon-collector mode: building high-resolution reconstructions from multiple <code>holo://objectID</code> exposures.</em>
 </p>
 
 

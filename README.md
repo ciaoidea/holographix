@@ -1,12 +1,12 @@
-# Holographix
+# HolographiX
 
 <img width="1280" height="720" alt="image" src="https://github.com/user-attachments/assets/ae95ff1f-b15f-46f3-bf1c-bebab868b851" />
 
-Holographix is a holographic, matrix-based media and networking substrate engineered for resilient, extreme connectivity.
+HolographiX is a holographic, matrix-based media and networking substrate engineered for resilient, extreme connectivity.
 
-Holographix (“holographic information matrix”) is a field-centric codec and UDP substrate for sensory content—RGB images and PCM WAV audio—meant to keep *useful percepts* alive on networks that behave like reality: loss, jitter, reordering, duplication, fading links, mobility. The design target is not “reliable delivery of every bit”; it is “maximum perceptual utility per bit that survives”, under quickly changing conditions, with an anytime reconstruction path that improves as fragments arrive.
+HolographiX (“holographic information matrix”) is a field-centric codec and UDP substrate for sensory content—RGB images and PCM WAV audio—meant to keep *useful percepts* alive on networks that behave like reality: loss, jitter, reordering, duplication, fading links, mobility. The design target is not “reliable delivery of every bit”; it is “maximum perceptual utility per bit that survives”, under quickly changing conditions, with an anytime reconstruction path that improves as fragments arrive.
 
-If you are building systems where perception must continue during impairment—robots, remote presence, ad‑hoc mesh links, disaster networks, radios—Holographix treats the medium as damaged by default and makes degradation graceful instead of catastrophic. It is explicitly tuned for the continuous, redundant regime where Large Vision Models (LVMs) and Large Audio Models (LAMs) operate: missing evidence should reduce fidelity or confidence, not force a stall.
+If you are building systems where perception must continue during impairment—robots, remote presence, ad‑hoc mesh links, disaster networks, radios—HolographiX treats the medium as damaged by default and makes degradation graceful instead of catastrophic. It is explicitly tuned for the continuous, redundant regime where Large Vision Models (LVMs) and Large Audio Models (LAMs) operate: missing evidence should reduce fidelity or confidence, not force a stall.
 
 ---
 
@@ -14,21 +14,21 @@ If you are building systems where perception must continue during impairment—r
 
 Classic transport abstractions are endpoint-centric: a stream between two addresses that aims for completeness in order and blocks when completeness cannot be guaranteed. That mental model is a good fit for programs and symbolic objects where “slightly wrong” often means “invalid”.
 
-Perceptual content lives in a different regime. Images and audio have structure spread across space and time; you can lose samples and still have a coherent scene or phrase. Holographix takes that as a specification: represent sensory content as a *field* such that almost any subset of contributions yields a globally consistent reconstruction whose quality grows smoothly with received information.
+Perceptual content lives in a different regime. Images and audio have structure spread across space and time; you can lose samples and still have a coherent scene or phrase. HolographiX takes that as a specification: represent sensory content as a *field* such that almost any subset of contributions yields a globally consistent reconstruction whose quality grows smoothly with received information.
 
-In Holographix, the network does not “rescue” a brittle representation. The representation itself is built so that survival of *any subset* is meaningful.
+In HolographiX, the network does not “rescue” a brittle representation. The representation itself is built so that survival of *any subset* is meaningful.
 
 ---
 
 ## What is implemented (current scope)
 
-Holographix is currently focused on sensory signals:
+HolographiX is currently focused on sensory signals:
 
 Images are handled as RGB arrays, with a model that generates a coarse approximation and an `int16` residual that carries fine detail.
 
 Audio is handled as PCM WAV via the Python standard library `wave`, again with a coarse approximation plus an `int16` residual carrying fine detail.
 
-Opaque arbitrary binaries are intentionally out of scope for now. Most binary formats are not meaningful under graceful blur and typically require strict erasure coding; Holographix is about perceptual continuity rather than bitwise equivalence under all failure modes.
+Opaque arbitrary binaries are intentionally out of scope for now. Most binary formats are not meaningful under graceful blur and typically require strict erasure coding; HolographiX is about perceptual continuity rather than bitwise equivalence under all failure modes.
 
 ---
 
@@ -40,7 +40,7 @@ The `holo` codec produces *holographic chunks*: individually useful contribution
 
 `holo.net` moves those chunks across harsh UDP links. It frames, segments, reassembles, and keeps chunk identity separate from socket endpoints.
 
-The Holographix “field” layer (`holo.field`, with higher-level planning in `holo.net.mesh` and identity helpers in `holo.net.arch`) treats the set of chunks as a shared perceptual substrate that many nodes can read and write, with local reconstruction and policy-driven healing.
+The HolographiX “field” layer (`holo.field`, with higher-level planning in `holo.net.mesh` and identity helpers in `holo.net.arch`) treats the set of chunks as a shared perceptual substrate that many nodes can read and write, with local reconstruction and policy-driven healing.
 
 A compact view of roles is captured by the mapping below; it is an analogy used as an engineering compass, not as biology as physics:
 
@@ -74,7 +74,7 @@ Decoding is the same physical idea in reverse: reconstruct coarse; allocate resi
 
 ## Golden-ratio interleaving (why it exists, what it guarantees)
 
-If you cut the residual into contiguous blocks, you get brittle locality: lose one block and you lose one region or one time segment. Holographix does the opposite. It treats the residual as a single line and walks it with a step that is “as incommensurate as possible” with the length, so that every chunk samples the entire signal. The way that step is chosen comes from the simplest geometric definition of the golden ratio.
+If you cut the residual into contiguous blocks, you get brittle locality: lose one block and you lose one region or one time segment. HolographiX does the opposite. It treats the residual as a single line and walks it with a step that is “as incommensurate as possible” with the length, so that every chunk samples the entire signal. The way that step is chosen comes from the simplest geometric definition of the golden ratio.
 
 Take a segment and split it into a larger and a smaller part. The golden condition is that the ratio of the whole to the larger part is the same as the ratio of the larger part to the smaller:
 
@@ -98,7 +98,7 @@ phi     = (1 + sqrt(5)) / 2  ≈  1.618033...
 phi - 1 = 1 / phi            ≈  0.618033...
 ```
 
-This “most irrational” proportion is what Holographix uses to spread fine detail as evenly as possible.
+This “most irrational” proportion is what HolographiX uses to spread fine detail as evenly as possible.
 
 Once the residual has been flattened into a 1-D array of length `N`, the codec turns the golden fraction into a discrete rotation step:
 
@@ -181,8 +181,8 @@ The separation is deliberate. The codec does not depend on sockets. The transpor
 A recent Python 3 with NumPy and Pillow is sufficient for images.
 
 ```bash
-git clone https://github.com/ciaoidea/Holographix.io.git
-cd Holographix.io
+git clone https://github.com/ciaoidea/HolographiX.io.git
+cd HolographiX.io
 
 python3 -m venv .venv
 source .venv/bin/activate      # on Windows: .venv\Scripts\activate
@@ -269,7 +269,7 @@ stack_image_holo_dirs(
 
 <p align="center">
   <img width="1280" height="800" alt="image" src="https://github.com/user-attachments/assets/c2b939d1-8911-4381-8bd7-a93e29f5401c" /><br/>
-  <em>Holographix photon-collector mode: building high-resolution reconstructions from multiple <code>holo://objectID</code> exposures.</em>
+  <em>HolographiX photon-collector mode: building high-resolution reconstructions from multiple <code>holo://objectID</code> exposures.</em>
 </p>
 
 
@@ -483,9 +483,9 @@ If you care about interaction realism (prosody, facial motion, affect), it is al
 ---
 
 
-## `The holo:// protocol in the Holographix agent network
+## `The holo:// protocol in the HolographiX agent network
 
-In Holographix, a network of agents and Large Media Models talks by reading and writing shared holographic fields. `holo://` is the scheme; the part that follows is the application-level name of one such field:
+In HolographiX, a network of agents and Large Media Models talks by reading and writing shared holographic fields. `holo://` is the scheme; the part that follows is the application-level name of one such field:
 
 ```text
 holo://object
@@ -514,7 +514,7 @@ In both cases the agent network sees the same pattern: a name `holo://object` is
 
 ## Conceptual lineage (kept explicit and testable)
 
-Holographix borrows language from biology—morphogenesis, fields, healing—because it describes a distributed pattern that remains recognisable under constant material loss. The implementation stays strictly within explicit data structures and deterministic reconstruction rules; no non-material mechanism is assumed.
+HolographiX borrows language from biology—morphogenesis, fields, healing—because it describes a distributed pattern that remains recognisable under constant material loss. The implementation stays strictly within explicit data structures and deterministic reconstruction rules; no non-material mechanism is assumed.
 
 The use of golden-ratio steps is an engineering technique for near-uniform sampling under modular rotation, chosen to spread residual detail globally with low bookkeeping.
 
@@ -534,5 +534,5 @@ Bohm, D. & Hiley, B. J. (1993). *The Undivided Universe: An Ontological Interpre
 
 Rizzo, A. *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. [DOI: 10.4236/apm.2023.139038](https://doi.org/10.4236/apm.2023.139038)
 
-Rizzo, A. (2025). *Holographix: a percept-first codec and network substrate for Large Vision Models and Large Audio Models over UDP (v1.0).* Zenodo. [https://doi.org/10.5281/zenodo.17843987](https://doi.org/10.5281/zenodo.17843987)
+Rizzo, A. (2025). *HolographiX: a percept-first codec and network substrate for Large Vision Models and Large Audio Models over UDP (v1.0).* Zenodo. [https://doi.org/10.5281/zenodo.17843987](https://doi.org/10.5281/zenodo.17843987)
 

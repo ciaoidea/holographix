@@ -61,7 +61,7 @@ Every encoded signal is split into a coarse component and a residual:
 
 ```text
 residual = original - coarse_up
-````
+```
 
 `coarse_up` is the coarse approximation upsampled back to the original resolution/length. The residual carries high-frequency detail. The codec stores the coarse representation plus a permuted, distributed residual across many chunks so that losing chunks reduces detail rather than invalidating the decode.
 
@@ -77,7 +77,7 @@ Take a segment and split it into a larger and a smaller part. The golden conditi
 
 ```text
 whole : larger  =  larger : smaller
-````
+```
 
 Set the whole to `1`, the larger part to `x`, and the smaller to `(1 − x)`. Then
 
@@ -126,8 +126,6 @@ perm[b], perm[b + B], perm[b + 2B], ...
 Each chunk is therefore a phase slice of the same golden walk over the residual. Every chunk touches the whole signal in a quasi-uniform way instead of “owning” a local piece. When some chunks are lost, reconstruction degrades by losing global detail, not by punching holes in specific regions or time windows.
 
 The practical claim you can measure is not mystical: quality should depend mainly on how many samples arrived, not on which specific chunk IDs arrived. A good golden interleaving yields low variance across random subsets of equal size and degrades without catastrophic discontinuities.
-
-```
 
 ---
 
@@ -195,6 +193,9 @@ Audio uses the standard library `wave`. Networking uses the standard library `so
 Encoding produces a `.holo` directory containing `chunk_XXXX.holo` files.
 
 ```bash
+# show options
+python3 -m holo --help
+
 # encode an image with default chunk sizing
 python3 -m holo image.png
 
@@ -213,31 +214,6 @@ To observe graded reconstruction, delete or move some `chunk_*.holo` files and d
 
 ---
 
-
-## Quick start
-
-Encoding a single image or audio file produces a `.holo` directory containing `chunk_XXXX.holo` files. Any subset of these chunks is still decodable, with quality that degrades gracefully as you lose fragments.
-
-From the command line:
-
-```bash
-# encode an image with default chunk sizing
-python3 -m holo image.png
-
-# encode with target chunk size around 32 KB
-python3 -m holo image.png 32
-
-# decode from the holographic directory back to an image
-python3 -m holo image.png.holo
-
-# audio (16-bit PCM WAV)
-python3 -m holo track.wav 32
-python3 -m holo track.wav.holo
-````
-
-To observe graded reconstruction, remove some `chunk_*.holo` files and decode again. The output remains globally coherent; you trade detail for robustness instead of flipping into a broken file.
-
----
 
 ### Perceptual stacking (photon-collector mode)
 
@@ -295,7 +271,6 @@ holo.unpack_object_from_holo_dir("scene.holo", 2,
 
 In this layout the residuals of all objects live on a single golden-ratio trajectory. Any surviving chunk contributes information about every object. If chunks are lost, all members of the pack become slightly blurrier or more lo-fi, but all remain decodable. The field behaves like a shared perceptual tissue rather than a bag of independent files.
 
-```
 ---
 
 ## Fields and healing (local metabolism)
@@ -319,6 +294,44 @@ f.heal_to("image_healed.holo", target_chunk_kb=32)
 ```
 
 Healing is policy, not magic. It does not recreate missing information. It takes the best currently reconstructable percept, re-encodes it into a fresh holographic population, and restores a clean distribution of coarse and residual data. The purpose is to prevent slow entropic decay when fragments are lost over time and to keep the field usable under long-lived impairment.
+
+The intuitive picture is “grow new cells from the surviving tissue”: decoding with partial chunks gives you a coherent but lower-detail percept; healing then *increases* the chunk population again by re-encoding that percept so the field stays dense. This is effectively a field-level interpolation: missing residual samples are zero-filled, but the coarse base and surviving residuals are redistributed into a full set of chunks. You can do this locally, or after pulling whatever fragments are available over UDP (via `holo://...` IDs) to rebuild a higher-resolution view from a sparse network harvest.
+
+---
+
+## Python API cheatsheet
+
+Use these as starting points; they mirror the CLI but expose finer control.
+
+```python
+import holo
+from holo.field import Field
+from holo.net.arch import content_id_bytes_from_uri
+
+# Single-object encode / decode
+holo.encode_image_holo_dir("frame.png", "frame.png.holo", target_chunk_kb=32)
+holo.decode_image_holo_dir("frame.png.holo", "frame_recon.png")
+holo.encode_audio_holo_dir("track.wav", "track.wav.holo", target_chunk_kb=32)
+holo.decode_audio_holo_dir("track.wav.holo", "track_recon.wav")
+
+# Photon-collector stacking
+from holo.codec import stack_image_holo_dirs
+stack_image_holo_dirs(["t0.png.holo", "t1.png.holo"], "stacked.png", max_chunks=8)
+
+# Multi-object packing in one field
+holo.pack_objects_holo_dir(["image1.jpg", "image2.jpg", "track.wav"], "scene.holo", target_chunk_kb=32)
+holo.unpack_object_from_holo_dir("scene.holo", 0, "image1_rec.png")
+holo.unpack_object_from_holo_dir("scene.holo", 2, "track_rec.wav")
+
+# Field coverage + healing
+f = Field("demo/image", "frame.png.holo")
+print(f.coverage())
+f.best_decode_image()                 # writes frame_recon.png
+f.heal_to("frame_healed.holo")        # re-encodes current best view
+
+# Build a content identifier (for transport/mesh)
+cid = content_id_bytes_from_uri("holo://demo/image")
+```
 
 ---
 
@@ -346,9 +359,85 @@ for chunk_id, path in enumerate(sorted(glob.glob("image.png.holo/chunk_*.holo"))
     send_chunk(sock, addr, content_id, chunk_id, chunk_bytes, max_payload=1200)
 ```
 
+Sample loopback test for the mesh helper (two terminals):
+
+Terminal A (receiver):
+```bash
+python3 - <<'PY'
+import socket, time
+from holo.net.mesh import MeshNode
+from holo.cortex.store import CortexStore
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.bind(("127.0.0.1", 5000))
+sock.setblocking(False)
+mesh = MeshNode(sock, CortexStore("cortex_rx"))
+
+print("listening on 127.0.0.1:5000")
+t0 = time.time()
+while time.time() - t0 < 5:
+    res = mesh.recv_once()
+    if res:
+        cid, chunk_id, path = res
+        print("stored", chunk_id, "->", path)
+    time.sleep(0.05)
+PY
+```
+
+Terminal B (sender):
+```bash
+python3 - <<'PY'
+import socket
+from holo.net.mesh import MeshNode
+from holo.cortex.store import CortexStore
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+mesh = MeshNode(sock, CortexStore("cortex_tx"), peers=[("127.0.0.1", 5000)])
+mesh.broadcast_chunk_dir("holo://demo/flower", "flower.jpg.holo")
+print("sent")
+PY
+```
+
 Above raw transport, `holo.net.mesh` adds gossip about which content IDs exist where and decides what to replicate and repeat. The intended style is that mesh policy remains small and explicit so different agents can adopt different replication strategies while reusing the same codec and framing.
 
 A practical note for harsh links: UDP segmentation turns one logical chunk into many datagrams. On lossy links, “receive the entire chunk” can become significantly less likely than “receive most datagrams”. A field-centric evolution path is therefore to make the smallest network contribution coincide with the smallest decodable contribution, so partial arrivals still improve the percept. The repository keeps codec and transport separate precisely to allow that evolution without entangling math and sockets.
+
+---
+
+## Examples (ready-to-run)
+
+The `examples/` directory contains self-contained scripts:
+
+- `encode_and_corrupt.py` encodes a generated gradient, deletes random chunks, and decodes to show graceful degradation.
+- `pack_and_extract.py` packs two synthetic images into one field, drops chunks, and extracts one object from the damaged field.
+- `heal_demo.py` damages a field, then uses `Field.heal_to` to regenerate a clean holographic population.
+- `mesh_loopback.py` simulates two UDP peers exchanging holographic chunks by `holo://` content ID and decoding on the receiver.
+
+GUI demo (no deps):
+
+- `examples/node-gui/` serves a small HTML UI that previews the outputs of the scripts above. Start it after running the Python scripts so the images exist:
+  ```bash
+  node examples/node-gui/server.js
+  # open http://localhost:3000
+  ```
+
+Quick run (from repo root):
+
+```bash
+# graceful degradation on a synthetic gradient
+python3 examples/encode_and_corrupt.py
+
+# shared tissue packing + damaged extraction
+python3 examples/pack_and_extract.py
+
+# healing after chunk loss
+python3 examples/heal_demo.py
+
+# local UDP loopback using content IDs (holo://demo/spiral)
+python3 examples/mesh_loopback.py
+```
+
+Outputs land in `examples/out/` (plus `examples/data/` for generated inputs). Each script prints the produced files so you can open them and compare.
 
 ---
 
@@ -375,6 +464,3 @@ The project also adopts a methodological stance: the deepest design work happens
 ## References
 
 A. Rizzo, *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. DOI: 10.4236/apm.2023.139038
-
-
-

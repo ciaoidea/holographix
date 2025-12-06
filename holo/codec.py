@@ -1020,3 +1020,4 @@ def detect_mode_from_chunk_dir(in_dir: str) -> str:
     if magic == MAGIC_AUD:
         return "audio"
     raise ValueError("Unknown chunk magic (not image/audio)")
+

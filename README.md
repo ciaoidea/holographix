@@ -282,11 +282,11 @@ holo.pack_objects_holo_dir(
 
 # later, reconstruct individual objects by index
 holo.unpack_object_from_holo_dir("scene.holo", 0,
-                                 output_path="flower_rec.png")
+                                 output_path="frame-01.png")
 holo.unpack_object_from_holo_dir("scene.holo", 1,
-                                 output_path="galaxy_rec.png")
+                                 output_path="frame-02.png")
 holo.unpack_object_from_holo_dir("scene.holo", 2,
-                                 output_path="track_rec.wav")
+                                 output_path="frame-03.wav")
 ```
 Tip: choose an `output_path` extension that matches the object type. Saving an image to `.wav` (or vice versa) will raise an error.
 

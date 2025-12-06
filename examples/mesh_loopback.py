@@ -11,6 +11,7 @@ import time
 import sys
 from pathlib import Path
 
+SAMPLE_IMAGE = Path(__file__).resolve().parents[1] / "galaxy.jpg"
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -46,10 +47,13 @@ def main() -> None:
     data_dir.mkdir(parents=True, exist_ok=True)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    img_path = data_dir / "spiral.png"
-    _make_spiral(img_path)
+    if SAMPLE_IMAGE.exists():
+        img_path = SAMPLE_IMAGE
+    else:
+        img_path = data_dir / "spiral.png"
+        _make_spiral(img_path)
 
-    chunk_dir = out_dir / "spiral.holo"
+    chunk_dir = out_dir / f"{Path(img_path).stem}.holo"
     holo.encode_image_holo_dir(str(img_path), str(chunk_dir), target_chunk_kb=16)
 
     # Two nodes on localhost
@@ -68,7 +72,7 @@ def main() -> None:
     mesh_a = MeshNode(sock_a, store_a, peers=[addr_b])
     mesh_b = MeshNode(sock_b, store_b, peers=[addr_a])
 
-    content_uri = "holo://demo/spiral"
+    content_uri = f"holo://demo/{Path(img_path).stem}"
     content_id = content_id_bytes_from_uri(content_uri)
 
     # Send all chunks from A to B
@@ -81,14 +85,14 @@ def main() -> None:
         time.sleep(0.02)
 
     received_dir = Path(store_b.content_dir(content_id))
-    recon = out_dir / "spiral_mesh_recon.png"
+    recon = out_dir / f"{Path(img_path).stem}_mesh_recon.png"
     holo.decode_image_holo_dir(str(received_dir), str(recon))
 
     print("=== mesh_loopback ===")
     print(f"sender chunks : {chunk_dir} -> broadcast to {addr_b}")
     print(f"receiver store: {received_dir}")
     print(f"reconstructed : {recon}")
-    print("Chunks are addressed by holo://demo/spiral content ID, not socket endpoint.")
+    print(f"Chunks are addressed by {content_uri} content ID, not socket endpoint.")
 
 
 if __name__ == "__main__":

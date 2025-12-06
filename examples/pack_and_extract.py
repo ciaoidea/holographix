@@ -10,7 +10,10 @@ import os
 import random
 import sys
 from pathlib import Path
+import shutil
 
+SAMPLE_A = Path(__file__).resolve().parents[1] / "flower.jpg"
+SAMPLE_B = Path(__file__).resolve().parents[1] / "galaxy.jpg"
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -55,22 +58,32 @@ def main() -> None:
     data_dir.mkdir(parents=True, exist_ok=True)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    img_a = data_dir / "checker.png"
-    img_b = data_dir / "stripes.png"
-    _make_checker(img_a)
-    _make_stripes(img_b)
-
     packed_dir = out_dir / "scene.holo"
+    if packed_dir.exists():
+        shutil.rmtree(packed_dir)
+
+    if SAMPLE_A.exists() and SAMPLE_B.exists():
+        img_a = SAMPLE_A
+        img_b = SAMPLE_B
+    else:
+        img_a = data_dir / "checker.png"
+        img_b = data_dir / "stripes.png"
+        _make_checker(img_a)
+        _make_stripes(img_b)
+
     holo.pack_objects_holo_dir([str(img_a), str(img_b)], str(packed_dir), target_chunk_kb=16)
 
     # Drop some chunks to simulate damage
     chunk_files = list(packed_dir.glob("chunk_*.holo"))
-    drop = max(1, len(chunk_files) // 3) if chunk_files else 0
-    for path in random.sample(chunk_files, k=drop):
-        path.unlink(missing_ok=True)
+    if chunk_files:
+        drop = min(len(chunk_files) // 3, max(0, len(chunk_files) - 1))
+        for path in random.sample(chunk_files, k=drop):
+            path.unlink(missing_ok=True)
+    else:
+        drop = 0
 
     # Extract the second object (index 1) from the degraded field
-    recon_path = out_dir / "stripes_recon.png"
+    recon_path = out_dir / f"{Path(img_b).stem}_recon.png"
     holo.unpack_object_from_holo_dir(str(packed_dir), 1, str(recon_path))
 
     print("=== pack_and_extract ===")

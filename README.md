@@ -408,10 +408,10 @@ A practical note for harsh links: UDP segmentation turns one logical chunk into 
 
 The `examples/` directory contains self-contained scripts:
 
-- `encode_and_corrupt.py` encodes a generated gradient, deletes random chunks, and decodes to show graceful degradation.
-- `pack_and_extract.py` packs two synthetic images into one field, drops chunks, and extracts one object from the damaged field.
-- `heal_demo.py` damages a field, then uses `Field.heal_to` to regenerate a clean holographic population.
-- `mesh_loopback.py` simulates two UDP peers exchanging holographic chunks by `holo://` content ID and decoding on the receiver.
+- `encode_and_corrupt.py` encodes `flower.jpg` (repo root), deletes random chunks, and decodes to show graceful degradation (falls back to a generated gradient if missing).
+- `pack_and_extract.py` packs `flower.jpg` and `galaxy.jpg` into one field, drops chunks, and extracts one object from the damaged field (falls back to synthetic checker/stripes if missing).
+- `heal_demo.py` damages `no-signal.jpg`, then uses `Field.heal_to` to regenerate a clean holographic population (falls back to a synthetic target if missing).
+- `mesh_loopback.py` simulates two UDP peers exchanging holographic chunks by `holo://` content ID using `galaxy.jpg` (falls back to a generated spiral if missing).
 
 Quick run (from repo root):
 
@@ -425,15 +425,15 @@ python3 examples/pack_and_extract.py
 # healing after chunk loss
 python3 examples/heal_demo.py
 
-# local UDP loopback using content IDs (holo://demo/spiral)
+# local UDP loopback using content IDs (holo://demo/galaxy)
 python3 examples/mesh_loopback.py
 ```
 
 What you get:
-- `encode_and_corrupt.py` → `examples/out/gradient.holo` and `gradient_recon.png`.
-- `pack_and_extract.py` → `examples/out/scene.holo` (packed), plus `stripes_recon.png` from the damaged field.
-- `heal_demo.py` → `examples/out/healing_degraded.png`, `healing_healed.holo`, `healing_healed.png`.
-- `mesh_loopback.py` → sender writes `examples/out/spiral.holo`, receiver reconstructs `examples/out/spiral_mesh_recon.png` addressed by `holo://demo/spiral`.
+- `encode_and_corrupt.py` → `examples/out/flower.holo` and `flower_recon.png` (or `gradient.*` if the sample is missing).
+- `pack_and_extract.py` → `examples/out/scene.holo` (packed), plus `examples/out/galaxy_recon.png` from the damaged field.
+- `heal_demo.py` → `examples/out/no-signal_degraded.png`, `no-signal_healed.holo`, `no-signal_healed.png`.
+- `mesh_loopback.py` → sender writes `examples/out/galaxy.holo`, receiver reconstructs `examples/out/galaxy_mesh_recon.png` addressed by `holo://demo/galaxy`.
 
 All inputs the scripts need are under `examples/data/`; outputs land in `examples/out/`. Each script prints the paths it writes so you can open them quickly.
 
@@ -461,4 +461,4 @@ The project also adopts a methodological stance: the deepest design work happens
 
 ## References
 
-A. Rizzo, *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. [DOI: 10.4236/apm.2023.139038](https://doi.org/10.4236/apm.2023.139038)
+A. Rizzo, *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. DOI: 10.4236/apm.2023.139038

@@ -9,6 +9,7 @@ import random
 import sys
 from pathlib import Path
 
+SAMPLE_IMAGE = Path(__file__).resolve().parents[1] / "no-signal.jpg"
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -36,10 +37,13 @@ def main() -> None:
     data_dir.mkdir(parents=True, exist_ok=True)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    src = data_dir / "healing_target.png"
-    _make_target(src)
+    if SAMPLE_IMAGE.exists():
+        src = SAMPLE_IMAGE
+    else:
+        src = data_dir / "healing_target.png"
+        _make_target(src)
 
-    chunk_dir = out_dir / "healing.holo"
+    chunk_dir = out_dir / f"{Path(src).stem}_healing.holo"
     holo.encode_image_holo_dir(str(src), str(chunk_dir), target_chunk_kb=12)
 
     # Damage: remove a few chunks
@@ -48,13 +52,13 @@ def main() -> None:
     for path in random.sample(chunk_files, k=drop):
         path.unlink(missing_ok=True)
 
-    degraded = out_dir / "healing_degraded.png"
+    degraded = out_dir / f"{Path(src).stem}_degraded.png"
     holo.decode_image_holo_dir(str(chunk_dir), str(degraded))
 
     field = Field(content_id="demo/heal", chunk_dir=str(chunk_dir))
-    healed_dir = out_dir / "healing_healed.holo"
+    healed_dir = out_dir / f"{Path(src).stem}_healed.holo"
     field.heal_to(str(healed_dir), target_chunk_kb=12)
-    healed_img = out_dir / "healing_healed.png"
+    healed_img = out_dir / f"{Path(src).stem}_healed.png"
     holo.decode_image_holo_dir(str(healed_dir), str(healed_img))
 
     print("=== heal_demo ===")

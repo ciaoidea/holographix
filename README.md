@@ -537,5 +537,6 @@ Rizzo, A. *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. [DOI: 1
 
 Rizzo, A. (2025). *HolographiX: a percept-first codec and network substrate for Large Vision Models and Large Audio Models over UDP (v1.0).* Zenodo. [https://doi.org/10.5281/zenodo.17843987](https://doi.org/10.5281/zenodo.17843987)
 
+--
 
-© 2025 [HolographiX](https://holographix.io)
+<center>© 2025 [HolographiX](https://holographix.io)</center>

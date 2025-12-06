@@ -259,7 +259,7 @@ encode_image_holo_dir("spacetime-frame-3.jpg", "frame 3", target_chunk_kb=32)
 
 # later, reconstruct and stack them as a "photon collector"
 stack_image_holo_dirs(
-    ["spacetime-frame-frame-1.jpg.holo", "spacetime-frame-frame-2.jpg.holo", "spacetime-frame-frame-3.jpg.holo"],
+    ["spacetime-frame-1.jpg.holo", "spacetime-frame-2.jpg.holo", "spacetime-frame-3.jpg.holo"],
     "stacked_recon.png",
     max_chunks=16,   # optional: limit chunks per exposure
 )

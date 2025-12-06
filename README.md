@@ -229,9 +229,6 @@ npm run dev
 npm run build
 ```
 
-![galaxy](https://github.com/user-attachments/assets/b1cd73a9-e4cc-43df-b528-d5c1c184ad52)
-
-
 ---
 
 
@@ -248,13 +245,13 @@ from holo.codec import (
 )
 
 # encode several frames of the same scene into independent holographic fields
-encode_image_holo_dir("flower.jpg", "flower.jpg.holo", target_chunk_kb=32)
-encode_image_holo_dir("galaxy.jpg", "galaxy.jpg.holo", target_chunk_kb=32)
-encode_image_holo_dir("no-signal.jpg", "no-signal.jpg.holo", target_chunk_kb=32)
+encode_image_holo_dir("frame-1.jpg", "frame 1", target_chunk_kb=32)
+encode_image_holo_dir("frame-2.jpg", "frame 2", target_chunk_kb=32)
+encode_image_holo_dir("frame-3.jpg", "frame 3", target_chunk_kb=32)
 
 # later, reconstruct and stack them as a "photon collector"
 stack_image_holo_dirs(
-    ["flower.jpg.holo", "galaxy.jpg.holo", "no-signal.jpg.holo"],
+    ["frame1.jpg.holo", "frame2.jpg.holo", "frame3.jpg.holo"],
     "stacked_recon.png",
     max_chunks=16,   # optional: limit chunks per exposure
 )
@@ -282,11 +279,11 @@ holo.pack_objects_holo_dir(
 
 # later, reconstruct individual objects by index
 holo.unpack_object_from_holo_dir("scene.holo", 0,
-                                 output_path="frame-01.png")
+                                 output_path="flower_rec.png")
 holo.unpack_object_from_holo_dir("scene.holo", 1,
-                                 output_path="frame-02.png")
+                                 output_path="galaxy_rec.png")
 holo.unpack_object_from_holo_dir("scene.holo", 2,
-                                 output_path="frame-03.wav")
+                                 output_path="track_rec.wav")
 ```
 Tip: choose an `output_path` extension that matches the object type. Saving an image to `.wav` (or vice versa) will raise an error.
 

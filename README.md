@@ -172,6 +172,23 @@ holo/
 
 The codec does not know about UDP or fields. The transport does not know about thumbnails or residuals. The field logic does not know about sockets. This is deliberate: Holographix is meant as a set of clean layers, not as one tangled script.
 
+## The biology / subtle mind mapping
+
+Holographix is not a neuron-by-neuron simulation of a brain, but its structure is deliberately shaped as a toy model of a subtle mind in nature: a distributed pattern that keeps forms, habits and meanings alive by circulating traces through a medium. The mapping is there as a compass to keep that analogy honest:
+
+```text
+codec     = genotype     (chunk format, versioning, golden interleaving rules)
+field     = phenotype    (best current reconstruction from surviving chunks)
+cortex    = tissue       (local storage, aging, dedup, integrity checks)
+mesh      = ecology      (circulation, gossip, opportunistic replication)
+arch      = receptors    (identity: holo://... -> content_id, compatibility)
+transport = impulses     (UDP framing/segmentation/reassembly)
+````
+
+The codec plays the role of a genetic code: deterministic, versioned math that defines how information can exist at all in this world. The Field is the living configuration at a given moment, the phenotype of a piece of content under the current conditions. Cortex is the tissue that remembers and forgets, where traces are stored, aged and cleaned up. Mesh is the wider environment where those traces move, meet, reinforce or fade. Arch is the interface layer, the receptors that decide which patterns can bind to which identities. Transport is the spike traffic, the impulses that actually carry fragments around.
+
+“Healing” belongs to Field and Cortex, not to the codec. The codec does not improvise; it just encodes and decodes according to its rules. Healing is policy: when to regenerate a new population of chunks from the current percept, where to replicate them in the ecology, when to ask the network for missing fragments. In that sense the “subtle mind” of the system does not live in a single place; it lives in the loop formed by genotype, phenotype, tissue and ecology, exactly as it does in natural systems.
+
 ---
 
 ## Installation

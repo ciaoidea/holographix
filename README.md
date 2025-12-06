@@ -213,47 +213,89 @@ To observe graded reconstruction, delete or move some `chunk_*.holo` files and d
 
 ---
 
-## Quick start (Python)
 
-```python
-import holo
+## Quick start
 
-# image
-holo.encode_image_holo_dir("image.png", "image.png.holo",
-                           target_chunk_kb=32)
-holo.decode_image_holo_dir("image.png.holo", "image_recon.png")
+Encoding a single image or audio file produces a `.holo` directory containing `chunk_XXXX.holo` files. Any subset of these chunks is still decodable, with quality that degrades gracefully as you lose fragments.
 
-# audio
-holo.encode_audio_holo_dir("track.wav", "track.wav.holo",
-                           target_chunk_kb=32)
-holo.decode_audio_holo_dir("track.wav.holo", "track_recon.wav")
-```
+From the command line:
+
+```bash
+# encode an image with default chunk sizing
+python3 -m holo image.png
+
+# encode with target chunk size around 32 KB
+python3 -m holo image.png 32
+
+# decode from the holographic directory back to an image
+python3 -m holo image.png.holo
+
+# audio (16-bit PCM WAV)
+python3 -m holo track.wav 32
+python3 -m holo track.wav.holo
+````
+
+To observe graded reconstruction, remove some `chunk_*.holo` files and decode again. The output remains globally coherent; you trade detail for robustness instead of flipping into a broken file.
 
 ---
 
-## Multi-object holographic storage (containers)
+### Perceptual stacking (photon-collector mode)
 
-When several sensory objects belong to the same conceptual entity, it is often preferable to store them in one holographic field so that loss degrades them *collectively* rather than destroying one file while leaving another perfect. The container module does this by concatenating residual vectors and interleaving them along one long golden trajectory, while carrying the coarse representation for each object as metadata.
+If you have several holographic exposures of the same scene (for example faint objects, low light, or noisy sensors), you can stack them to improve SNR over time, exactly as with exposure stacking in astrophotography.
+
+At the Python level:
+
+```python
+from holo.codec import (
+    encode_image_holo_dir,
+    stack_image_holo_dirs,
+)
+
+# encode several frames of the same scene into independent holographic fields
+encode_image_holo_dir("t0.png", "t0.png.holo", target_chunk_kb=32)
+encode_image_holo_dir("t1.png", "t1.png.holo", target_chunk_kb=32)
+encode_image_holo_dir("t2.png", "t2.png.holo", target_chunk_kb=32)
+
+# later, reconstruct and stack them as a "photon collector"
+stack_image_holo_dirs(
+    ["t0.png.holo", "t1.png.holo", "t2.png.holo"],
+    "stacked_recon.png",
+    max_chunks=16,   # optional: limit chunks per exposure
+)
+```
+
+`stack_image_holo_dirs` decodes each `.holo` directory, sums the images in float, and writes the pixel-wise average as `stacked_recon.png`. Uncorrelated noise cancels out; persistent structure reinforces.
+
+---
+
+### Multi-object holographic fields (tissue-like layout)
+
+When several images or audio tracks belong to the same conceptual object, you can store them in a single holographic field instead of separate directories. All objects then share the same “tissue”: losing chunks reduces detail across the whole pack instead of killing one file while leaving another perfect.
+
+Using the Python API (container layer):
 
 ```python
 import holo
 
+# pack several objects into one holographic field
 holo.pack_objects_holo_dir(
     ["image1.jpg", "image2.jpg", "track.wav"],
-    "pack1.holo",
+    "scene.holo",
     target_chunk_kb=32,
 )
 
-holo.unpack_object_from_holo_dir("pack1.holo", 0,
+# later, reconstruct individual objects by index
+holo.unpack_object_from_holo_dir("scene.holo", 0,
                                  output_path="image1_rec.png")
-holo.unpack_object_from_holo_dir("pack1.holo", 1,
+holo.unpack_object_from_holo_dir("scene.holo", 1,
                                  output_path="image2_rec.png")
-holo.unpack_object_from_holo_dir("pack1.holo", 2,
+holo.unpack_object_from_holo_dir("scene.holo", 2,
                                  output_path="track_rec.wav")
 ```
 
-The resulting behaviour is “concept-cloud like”: losing fragments reduces detail across the whole pack, instead of randomly annihilating a single member.
+In this layout the residuals of all objects live on a single golden-ratio trajectory. Any surviving chunk contributes information about every object. If chunks are lost, all members of the pack become slightly blurrier or more lo-fi, but all remain decodable. The field behaves like a shared perceptual tissue rather than a bag of independent files.
 
+```
 ---
 
 ## Fields and healing (local metabolism)

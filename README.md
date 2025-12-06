@@ -229,6 +229,9 @@ npm run dev
 npm run build
 ```
 
+![galaxy](https://github.com/user-attachments/assets/b1cd73a9-e4cc-43df-b528-d5c1c184ad52)
+
+
 ---
 
 

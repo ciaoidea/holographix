@@ -53,7 +53,7 @@ A compact view of roles is captured by the mapping below; it is an analogy used 
 | `arch` | identity and compatibility (`holo://...` → content identifiers) | receptors |
 | `transport` | UDP framing, segmentation, reassembly | impulses |
 
-<img width="1280" height="600" alt="image" src="https://github.com/user-attachments/assets/ca097bb5-3aaa-4efa-ba5b-8e6495cbae44" />
+<img width="800" height="400" alt="image" src="https://github.com/user-attachments/assets/ca097bb5-3aaa-4efa-ba5b-8e6495cbae44" />
 
 
 ---

@@ -539,4 +539,7 @@ Rizzo, A. (2025). *HolographiX: a percept-first codec and network substrate for 
 
 --
 
-<center>© 2025 [HolographiX](https://holographix.io)</center>
+<p align="center">
+  © 2025 <a href="https://holographix.io">HolographiX</a>
+</p>
+

@@ -13,6 +13,8 @@ from __future__ import annotations
 import math
 import socket
 import struct
+import hmac
+import hashlib
 from typing import Dict, Iterable, List, Optional, Tuple
 
 MAGIC = b"HODT"  # HOlographix Datagram Transport
@@ -41,6 +43,7 @@ def iter_chunk_datagrams(
     chunk_bytes: bytes,
     *,
     max_payload: int = 1200,
+    auth_key: Optional[bytes] = None,
 ) -> Iterable[bytes]:
     """
     Yield datagrams for one holographic chunk.
@@ -56,14 +59,17 @@ def iter_chunk_datagrams(
     max_payload : int, optional
         Maximum UDP payload size in bytes (including header). Defaults to 1200,
         which is conservative for most links.
+    auth_key : bytes, optional
+        If provided, append an HMAC-SHA256 over (header+payload) for integrity/auth.
     """
     if len(content_id) != 16:
         raise ValueError("content_id must be 16 bytes (blake2s default)")
 
-    if max_payload <= _HDR_SIZE:
+    mac_len = 32 if auth_key else 0
+    if max_payload <= _HDR_SIZE + mac_len:
         raise ValueError("max_payload too small to hold header")
 
-    payload_size = max_payload - _HDR_SIZE
+    payload_size = max_payload - _HDR_SIZE - mac_len
     frag_total = int(math.ceil(len(chunk_bytes) / float(payload_size)))
     frag_total = max(1, frag_total)
 
@@ -79,7 +85,11 @@ def iter_chunk_datagrams(
             int(frag_total),
             int(len(chunk_bytes)),
         )
-        yield header + payload
+        datagram = header + payload
+        if auth_key:
+            tag = hmac.new(auth_key, datagram, hashlib.sha256).digest()
+            datagram += tag
+        yield datagram
 
 
 def send_chunk(
@@ -90,11 +100,18 @@ def send_chunk(
     chunk_bytes: bytes,
     *,
     max_payload: int = 1200,
+    auth_key: Optional[bytes] = None,
 ) -> None:
     """
     Send one holographic chunk as a series of UDP datagrams.
     """
-    for datagram in iter_chunk_datagrams(content_id, chunk_id, chunk_bytes, max_payload=max_payload):
+    for datagram in iter_chunk_datagrams(
+        content_id,
+        chunk_id,
+        chunk_bytes,
+        max_payload=max_payload,
+        auth_key=auth_key,
+    ):
         sock.sendto(datagram, addr)
 
 
@@ -111,24 +128,40 @@ class ChunkAssembler:
         content_id, chunk_id, chunk_bytes = result
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *, auth_key: Optional[bytes] = None) -> None:
         self._partials: Dict[Tuple[bytes, int], Dict[str, object]] = {}
+        self.auth_key = auth_key
+        self.counters = {"datagrams": 0, "invalid": 0, "mac_fail": 0, "chunks_completed": 0}
 
     def push_datagram(self, data: bytes) -> Optional[Tuple[bytes, int, bytes]]:
         """
         Ingest one datagram. Returns (content_id, chunk_id, chunk_bytes) when
         a full chunk is ready, or None otherwise.
         """
-        if len(data) < _HDR_SIZE:
+        self.counters["datagrams"] += 1
+
+        mac_len = 32 if self.auth_key else 0
+        if len(data) < _HDR_SIZE + mac_len:
+            self.counters["invalid"] += 1
             return None
 
-        magic, cid, chunk_id, frag_idx, frag_total, chunk_len = _HDR_STRUCT.unpack_from(data, 0)
+        msg = data
+        tag = b""
+        if mac_len:
+            msg, tag = data[:-mac_len], data[-mac_len:]
+            if not hmac.compare_digest(tag, hmac.new(self.auth_key, msg, hashlib.sha256).digest()):
+                self.counters["mac_fail"] += 1
+                return None
+
+        magic, cid, chunk_id, frag_idx, frag_total, chunk_len = _HDR_STRUCT.unpack_from(msg, 0)
         if magic != MAGIC:
+            self.counters["invalid"] += 1
             return None
         if frag_total <= 0 or frag_idx >= frag_total:
+            self.counters["invalid"] += 1
             return None
 
-        payload = data[_HDR_SIZE:]
+        payload = msg[_HDR_SIZE:]
 
         key = (cid, int(chunk_id))
         state = self._partials.get(key)
@@ -141,6 +174,7 @@ class ChunkAssembler:
             self._partials[key] = state
         else:
             if state["frag_total"] != int(frag_total) or state["chunk_len"] != int(chunk_len):
+                self.counters["invalid"] += 1
                 return None
 
         frags: Dict[int, bytes] = state["frags"]  # type: ignore[assignment]
@@ -161,4 +195,5 @@ class ChunkAssembler:
             chunk_bytes = chunk_bytes[: state["chunk_len"]]
 
         del self._partials[key]
+        self.counters["chunks_completed"] += 1
         return cid, int(chunk_id), chunk_bytes

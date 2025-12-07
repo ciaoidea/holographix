@@ -15,7 +15,7 @@ import socket
 from typing import Iterable, List, Optional, Tuple
 
 from .arch import content_id_bytes_from_uri
-from .transport import ChunkAssembler, send_chunk
+from .transport import ChunkAssembler, iter_chunk_datagrams
 from ..cortex.store import CortexStore
 
 __all__ = ["MeshNode"]
@@ -33,12 +33,15 @@ class MeshNode:
         *,
         peers: Optional[Iterable[Tuple[str, int]]] = None,
         max_payload: int = 1200,
+        auth_key: Optional[bytes] = None,
     ) -> None:
         self.sock = sock
         self.store = store
         self.peers: List[Tuple[str, int]] = list(peers) if peers else []
         self.max_payload = int(max_payload)
-        self._assembler = ChunkAssembler()
+        self._assembler = ChunkAssembler(auth_key=auth_key)
+        self.auth_key = auth_key
+        self.counters = {"sent_chunks": 0, "sent_datagrams": 0, "stored_chunks": 0}
 
     def add_peer(self, addr: Tuple[str, int]) -> None:
         if addr not in self.peers:
@@ -48,25 +51,29 @@ class MeshNode:
         if addr in self.peers:
             self.peers.remove(addr)
 
-    def broadcast_chunk_dir(self, content_uri: str, chunk_dir: str) -> None:
+    def broadcast_chunk_dir(self, content_uri: str, chunk_dir: str, *, repeats: int = 1) -> None:
         """
         Send every chunk in chunk_dir to all known peers.
         """
         content_id = content_id_bytes_from_uri(content_uri)
         chunk_paths = sorted(glob.glob(f"{chunk_dir}/chunk_*.holo"))
+        repeats = max(1, int(repeats))
         for path in chunk_paths:
             with open(path, "rb") as f:
                 chunk_bytes = f.read()
             chunk_id = self._chunk_id_from_name(path)
-            for peer in self.peers:
-                send_chunk(
-                    self.sock,
-                    peer,
-                    content_id,
-                    chunk_id,
-                    chunk_bytes,
-                    max_payload=self.max_payload,
-                )
+            for _ in range(repeats):
+                for peer in self.peers:
+                    for datagram in iter_chunk_datagrams(
+                        content_id,
+                        chunk_id,
+                        chunk_bytes,
+                        max_payload=self.max_payload,
+                        auth_key=self.auth_key,
+                    ):
+                        self.sock.sendto(datagram, peer)
+                        self.counters["sent_datagrams"] += 1
+                    self.counters["sent_chunks"] += 1
 
     def recv_once(self) -> Optional[Tuple[bytes, int, str]]:
         """
@@ -86,6 +93,7 @@ class MeshNode:
 
         content_id, chunk_id, chunk_bytes = assembled
         stored = self.store.store_chunk_bytes(content_id, chunk_id, chunk_bytes)
+        self.counters["stored_chunks"] += 1
         return content_id, chunk_id, stored
 
     @staticmethod

@@ -457,6 +457,7 @@ The `examples/` directory contains self-contained scripts:
 - `snr_benchmark_audio.py` measures SNR vs received chunks for WAV.
 - `timing_benchmark.py` measures encode/decode wall-clock times.
 - `field_tools.py` lists, prunes, copies, and merges `.holo` directories.
+- `infra/containerlab/` hosts a reproducible containerlab+FRR lab for HolographiX vs baseline comparisons with netem impairments.
 
 Quick run (from repo root):
 
@@ -484,6 +485,10 @@ python3 examples/timing_benchmark.py --image flower.jpg --audio examples/data/tr
 
 # Field inspection / curation
 python3 examples/field_tools.py list flower.jpg.holo
+
+# containerlab lab (see infra/containerlab/README.md)
+containerlab deploy -t infra/containerlab/holo-lab.clab.yml
+infra/containerlab/init_hosts.sh
 ```
 
 What you get:
@@ -546,6 +551,24 @@ In both cases the agent network sees the same pattern: a name `holo://object` is
 - Transport integrity: if you need authenticated transport, pass `auth_key` (bytes) to `MeshNode` or directly to `iter_chunk_datagrams`/`send_chunk` to enable per-datagram HMAC-SHA256 checks.
 - Benchmarking: use `examples/psnr_benchmark.py` and `examples/snr_benchmark_audio.py` to characterise graceful degradation; use `examples/timing_benchmark.py` to log latency on target hardware.
 - Field hygiene: `examples/field_tools.py` can list, drop, copy, and merge chunks to keep stores clean or to curate partial fields.
+
+## Deployment notes
+
+- Service wrappers: run sender/receiver under a supervisor (systemd/pm2) with restart-on-failure and log rotation.
+- systemd samples: `systemd/holo_mesh_sender.service` and `systemd/holo_mesh_receiver.service` illustrate minimal units (adjust URIs, paths, peers).
+- Security: avoid hardcoding `auth_key`; load from secrets manager or env var; add optional payload encryption if needed.
+- Observability: export counters from `MeshNode`/`ChunkAssembler` via metrics endpoint (Prometheus/OpenTelemetry) and log structured events for chunk send/recv.
+- Packaging: use `pyproject.toml` for pip install; build a minimal container image (python slim + repo) with entrypoints for `examples/holo_mesh_sender.py` / `holo_mesh_receiver.py`.
+- Network tuning: set `max_payload` below path MTU; adjust `repeats` and netem profiles per environment; consider light FEC/ARQ if links require it.
+- Compose: `docker-compose.yml` launches sender/receiver pairs (Holo + baseline) for quick local runs.
+
+Quick compose run:
+```
+# Ensure inputs exist (or adjust paths in docker-compose.yml):
+#   flower.jpg and flower.jpg.holo alongside docker-compose.yml
+#   generate .holo if missing: python3 -m holo flower.jpg 32
+docker-compose up --build
+```
 
 ---
 

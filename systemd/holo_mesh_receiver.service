@@ -1,0 +1,15 @@
+[Unit]
+Description=HolographiX mesh receiver
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /opt/holographix/examples/holo_mesh_receiver.py --listen 0.0.0.0:5000 --out-dir /opt/holographix/cortex_rx --decode /opt/holographix/out/recon.png --duration 3600
+WorkingDirectory=/opt/holographix
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

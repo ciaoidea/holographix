@@ -193,6 +193,14 @@ pip install numpy pillow
 
 Audio uses the standard library `wave`. Networking uses the standard library `socket` and `struct` plus the modules under `holo.net`.
 
+Packaging (editable install):
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
 ---
 
 ## Quick start (CLI)
@@ -388,7 +396,7 @@ addr = ("192.168.1.50", 5000)
 for chunk_id, path in enumerate(sorted(glob.glob("image.png.holo/chunk_*.holo"))):
     with open(path, "rb") as f:
         chunk_bytes = f.read()
-    send_chunk(sock, addr, content_id, chunk_id, chunk_bytes, max_payload=1200)
+    send_chunk(sock, addr, content_id, chunk_id, chunk_bytes, max_payload=1200, auth_key=b"optional-secret")
 ```
 
 Sample loopback test for the mesh helper (two terminals):
@@ -403,7 +411,7 @@ from holo.cortex.store import CortexStore
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(("127.0.0.1", 5000))
 sock.setblocking(False)
-mesh = MeshNode(sock, CortexStore("cortex_rx"))
+mesh = MeshNode(sock, CortexStore("cortex_rx"), auth_key=b"optional-secret")
 
 print("listening on 127.0.0.1:5000")
 t0 = time.time()
@@ -424,13 +432,14 @@ from holo.net.mesh import MeshNode
 from holo.cortex.store import CortexStore
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-mesh = MeshNode(sock, CortexStore("cortex_tx"), peers=[("127.0.0.1", 5000)])
-mesh.broadcast_chunk_dir("holo://demo/flower", "flower.jpg.holo")
+mesh = MeshNode(sock, CortexStore("cortex_tx"), peers=[("127.0.0.1", 5000)], auth_key=b"optional-secret")
+mesh.broadcast_chunk_dir("holo://demo/flower", "flower.jpg.holo", repeats=2)
 print("sent")
 PY
 ```
 
 Above raw transport, `holo.net.mesh` adds gossip about which content IDs exist where and decides what to replicate and repeat. The intended style is that mesh policy remains small and explicit so different agents can adopt different replication strategies while reusing the same codec and framing.
+`MeshNode` accepts `auth_key` for HMAC verification, and `repeats` can be used to deliberately resend chunks on harsh links; basic counters for sent/stored chunks and MAC failures are exposed on `MeshNode.counters` and `ChunkAssembler.counters`.
 
 A practical note for harsh links: UDP segmentation turns one logical chunk into many datagrams. On lossy links, “receive the entire chunk” can become significantly less likely than “receive most datagrams”. A field-centric evolution path is therefore to make the smallest network contribution coincide with the smallest decodable contribution, so partial arrivals still improve the percept. The repository keeps codec and transport separate precisely to allow that evolution without entangling math and sockets.
 
@@ -444,6 +453,10 @@ The `examples/` directory contains self-contained scripts:
 - `pack_and_extract.py` packs `flower.jpg` and `galaxy.jpg` into one field, drops chunks, and extracts one object from the damaged field (falls back to synthetic checker/stripes if missing).
 - `heal_demo.py` damages `no-signal.jpg`, then uses `Field.heal_to` to regenerate a clean holographic population (falls back to a synthetic target if missing).
 - `mesh_loopback.py` simulates two UDP peers exchanging holographic chunks by `holo://` content ID using `galaxy.jpg` (falls back to a generated spiral if missing).
+- `psnr_benchmark.py` encodes an image, randomly drops chunks, and reports PSNR statistics as chunk count varies.
+- `snr_benchmark_audio.py` measures SNR vs received chunks for WAV.
+- `timing_benchmark.py` measures encode/decode wall-clock times.
+- `field_tools.py` lists, prunes, copies, and merges `.holo` directories.
 
 Quick run (from repo root):
 
@@ -459,6 +472,18 @@ python3 examples/heal_demo.py
 
 # local UDP loopback using content IDs (holo://demo/galaxy)
 python3 examples/mesh_loopback.py
+
+# PSNR vs chunk count (writes results to stdout)
+python3 examples/psnr_benchmark.py --image flower.jpg --target-chunk-kb 32
+
+# Audio SNR vs chunk count
+python3 examples/snr_benchmark_audio.py --wav examples/data/track.wav --block-count 12
+
+# Encode/decode timing (image and optional audio)
+python3 examples/timing_benchmark.py --image flower.jpg --audio examples/data/track.wav
+
+# Field inspection / curation
+python3 examples/field_tools.py list flower.jpg.holo
 ```
 
 What you get:
@@ -513,6 +538,17 @@ In both cases the agent network sees the same pattern: a name `holo://object` is
 
 ---
 
+## Operational best practices
+
+- Chunk sizing: start around 16–32 KB (`--target-chunk-kb`), adjust down on very lossy links to increase per-datagram survival; adjust coarse size (`--coarse-side`, `--coarse-frames`) upward if coarse blur is too strong.
+- Audio clipping: residuals outside int16 are clipped and flagged; keep input WAV within int16 dynamic range to avoid lossy clipping.
+- Healing/stacking: periodically call `Field.heal_to` when fields age and chunks are lost; for low-SNR capture, collect multiple exposures and run `stack_image_holo_dirs`.
+- Transport integrity: if you need authenticated transport, pass `auth_key` (bytes) to `MeshNode` or directly to `iter_chunk_datagrams`/`send_chunk` to enable per-datagram HMAC-SHA256 checks.
+- Benchmarking: use `examples/psnr_benchmark.py` and `examples/snr_benchmark_audio.py` to characterise graceful degradation; use `examples/timing_benchmark.py` to log latency on target hardware.
+- Field hygiene: `examples/field_tools.py` can list, drop, copy, and merge chunks to keep stores clean or to curate partial fields.
+
+---
+
 ## Conceptual lineage (kept explicit and testable)
 
 HolographiX borrows language from biology—morphogenesis, fields, healing—because it describes a distributed pattern that remains recognisable under constant material loss. The implementation stays strictly within explicit data structures and deterministic reconstruction rules; no non-material mechanism is assumed.
@@ -542,4 +578,3 @@ Rizzo, A. (2025). *HolographiX: a percept-first codec and network substrate for 
 <p align="center">
   © 2025 <a href="https://holographix.io">HolographiX</a>
 </p>
-

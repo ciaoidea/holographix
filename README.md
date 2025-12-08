@@ -323,6 +323,14 @@ stack_image_holo_dirs(
 
 `stack_image_holo_dirs` decodes each `.holo` directory, sums the images in float, and writes the pixel-wise average as `stacked_recon.png`. Uncorrelated noise cancels out; persistent structure reinforces.
 
+CLI stacking shortcut (no separate script needed):
+
+```bash
+python3 -m holo --stack frame1.jpg.holo frame2.jpg.holo frame3.jpg.holo \
+    --stack-max-chunks 16 \
+    --output stacked_recon.png
+```
+
 <p align="center">
   <img width="1280" height="800" alt="image" src="https://github.com/user-attachments/assets/c2b939d1-8911-4381-8bd7-a93e29f5401c" /><br/>
   <em>HolographiX photon-collector mode: building high-resolution reconstructions from multiple <code>holo://objectID</code> exposures.</em>

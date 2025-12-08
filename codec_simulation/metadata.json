@@ -1,0 +1,5 @@
+{
+  "name": "Holo.Codec Control Deck",
+  "description": "Advanced graphical interface and simulator for the Holo.Codec holographic media system. Features signal degradation simulation and CLI command generation.",
+  "requestFramePermissions": []
+}

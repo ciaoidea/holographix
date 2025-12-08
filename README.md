@@ -238,6 +238,53 @@ To observe graded reconstruction, delete or move some `chunk_*.holo` files and d
 
 `codec_simulation/` contains an interactive React/Vite deck to poke the codec, visualize degradation, and emit equivalent CLI commands. It runs entirely in Node.js locally via the Vite dev server; an Electron shell is optional and not required.
 
+---
+
+## Packet-native UDP (1 datagram = 1 chunk)
+
+If you want the network to behave like a “field” of packets rather than a stream, keep every holographic chunk under your UDP payload budget so fragmentation never triggers (`frag_total = 1`). With the default `max_payload=1200` and optional HMAC, the useful budget per datagram is:
+
+```text
+payload_size = max_payload - 32 bytes of transport header - (32 bytes if HMAC)
+```
+
+Setting a small coarse thumbnail keeps each chunk comfortably inside that budget. Image encoding now defaults to `--coarse-side 16`; the CLI also aims at packet-atomic chunks by default via `--packet-bytes 1168` (0 to disable). You can sanity check an encode with:
+
+```python
+import glob, os
+mx = max(os.path.getsize(p) for p in glob.glob("frame.holo/chunk_*.holo"))
+print(mx)
+```
+
+Stay below ~1168 bytes (no HMAC) or ~1136 bytes (with HMAC) to remain packet-atomic. Drop `--coarse-side` further if needed. Expect a large number of tiny chunks for high-res images; disable `--packet-bytes` if you prefer fewer, larger chunks.
+
+`examples/holo_mesh_node.py` runs a minimal RX+TX+gossip loop: it stores completed chunks, forwards a fraction of fresh ones, and re-sends random stored chunks at a fixed rate to keep coverage growing without sessions. Run it from the repo root (so imports resolve) or set `PYTHONPATH=.`.
+
+## Running as services (systemd)
+
+Units live in `systemd/` and assume the repo is at `/opt/holographix` and Python at `/usr/bin/python3`. Copy the unit to `/etc/systemd/system/`, copy the matching `.env` to `/etc/default/...`, edit values, then:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now <unit name>
+```
+
+**Mesh node (RX+TX+gossip)**  
+Unit: `systemd/holo_mesh_node.service`, env template: `systemd/holo_mesh_node.env` → `/etc/default/holo_mesh_node`.  
+Key vars: `HXN_BIND`, `HXN_STORE_ROOT`, `HXN_PEER_OPTS="--peer ip:port ..."`, optional `HXN_SEED_OPTS` (bootstrap content), `HXN_EXTRA_OPTS="--packet-bytes 1136 --coarse-side 16"` for packet-atom, `HXN_AUTH_OPTS` for HMAC. The node listens, stores chunks, forwards a slice of fresh ones, and periodically re-radiates random stored chunks to peers.
+
+**Sender / receiver (one-shot scripts)**  
+- Sender: `systemd/holo_mesh_sender.service` + `systemd/holo_mesh_sender.env` (set `HXS_URI`, `HXS_CHUNK_DIR`, `HXS_PEER`, `HXS_MAX_PAYLOAD`, optional auth/extra).  
+- Receiver: `systemd/holo_mesh_receiver.service` + `systemd/holo_mesh_receiver.env` (set `HXR_LISTEN`, `HXR_OUT_DIR`, `HXR_DECODE`, `HXR_MAX_PAYLOAD`, optional auth/extra).
+
+Adjust paths inside the units if your install lives elsewhere.
+
+---
+
+### Codec simulation UI (control deck)
+
+`codec_simulation/` contains an interactive React/Vite deck to poke the codec, visualize degradation, and emit equivalent CLI commands. It runs entirely in Node.js locally via the Vite dev server; an Electron shell is optional and not required.
+
 ```bash
 cd codec_simulation
 npm install

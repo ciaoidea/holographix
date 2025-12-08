@@ -36,10 +36,26 @@ def _parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
         description="Holographix holographic codec: encode to .holo dirs, decode from .holo dirs.",
     )
 
-    p.add_argument("path", help="Input file (image or .wav) to encode, or .holo directory to decode.")
+    p.add_argument(
+        "path",
+        nargs="?",
+        help="Input file (image or .wav) to encode, or .holo directory to decode. Not used when --stack is provided.",
+    )
     p.add_argument("target_kb", nargs="?", type=int, help="Target chunk size in KB (encoding only). Example: 32")
     p.add_argument("-o", "--output", default=None, help="Output path for decoding (default: derived from dir name).")
     p.add_argument("--max-chunks", type=int, default=None, help="Decode using at most this many chunks (debug).")
+    p.add_argument(
+        "--stack",
+        nargs="+",
+        default=None,
+        help="Stack multiple .holo directories into one reconstruction (pass 2+ .holo paths).",
+    )
+    p.add_argument(
+        "--stack-max-chunks",
+        type=int,
+        default=None,
+        help="Limit chunks per exposure when stacking.",
+    )
 
     p.add_argument("--blocks", type=int, default=None, help="Explicit chunk count for encoding.")
     p.add_argument("--coarse-side", type=int, default=16, help="Image coarse max side (encoding).")
@@ -56,6 +72,16 @@ def _parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = _parse_args(argv)
+
+    # Stacking mode (no direct CLI subcommand before; invoked with --stack)
+    if args.stack:
+        if len(args.stack) < 2:
+            raise ValueError("--stack requires at least two .holo directories")
+        out = args.output or "stacked_recon.png"
+        holo.stack_image_holo_dirs(args.stack, out, max_chunks=args.stack_max_chunks)
+        print(out)
+        return 0
+
     path = os.path.normpath(args.path)
 
     if os.path.isdir(path) and path.lower().endswith(".holo"):

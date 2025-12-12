@@ -9,6 +9,25 @@ HolographiX (“holographic information matrix”) is a field-centric codec and 
 
 If you are building systems where perception must continue during impairment—robots, remote presence, ad‑hoc mesh links, disaster networks, radios—HolographiX treats the medium as damaged by default and makes degradation graceful instead of catastrophic. It is explicitly tuned for the continuous, redundant regime where Large Vision Models (LVMs) and Large Audio Models (LAMs) operate: missing evidence should reduce fidelity or confidence, not force a stall.
 
+**Try it in 60 seconds (from repo root)**  
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ./src
+python3 -m holo src/flower.jpg 8                   # encode → writes src/flower.jpg.holo
+rm src/flower.jpg.holo/chunk_0000.holo            # simulate loss (optional)
+python3 -m holo src/flower.jpg.holo --output src/flower_recon.png
+```
+Mental map: **codec** (coarse + residual, golden interleave) → **transport** (chunk framing, UDP segmentation) → **mesh** (gossip/INV/WANT, replication policy).
+
+Quick shape (why it’s separable):
+```
+[ codec ] --> holographic chunks --> [ transport ] --> datagrams --> [ mesh ] --> peers/gossip
+   |                                     |                               |
+ coarse + residual                       MTU-fit chunks                 INV/WANT + replication
+```
+
+Packet-atomic note: keep `--packet-bytes` below path MTU (defaults to ~1168 bytes without HMAC). Small coarse thumbnails (`--coarse-side 16`) make each chunk fit one UDP datagram so links never fragment.
+
 ---
 
 ## Paradigm: from streams to fields
@@ -175,8 +194,8 @@ The separation is deliberate. The codec does not depend on sockets. The transpor
 A recent Python 3 with NumPy and Pillow is sufficient for images. The packaging files live under `src/`.
 
 ```bash
-git clone https://github.com/ciaoidea/HolographiX.io.git
-cd HolographiX.io
+git clone https://github.com/ciaoidea/holographix.git
+cd holographix
 
 python3 -m venv .venv
 source .venv/bin/activate      # on Windows: .venv\Scripts\activate

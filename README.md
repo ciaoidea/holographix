@@ -661,7 +661,7 @@ Bohm, D. & Hiley, B. J. (1993). *The Undivided Universe: An Ontological Interpre
 
 Rizzo, A. *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. [DOI: 10.4236/apm.2023.139038](https://doi.org/10.4236/apm.2023.139038)
 
-Rizzo, A. (2025). *HolographiX: a percept-first codec and network substrate for Large Vision Models and Large Audio Models over UDP (v1.2).* Zenodo. (v1.2). [DOI: 10.5281/zenodo.17860732](https://doi.org/10.5281/zenodo.17860732)
+Rizzo, A. (2025). *HolographiX: a percept-first codec and network substrate for Large Vision Models and Large Audio Models over UDP (v1.4).* Zenodo. (v1.4). [DOI: 10.5281/zenodo.17860732](https://doi.org/10.5281/zenodo.17860732)
 
 --
 

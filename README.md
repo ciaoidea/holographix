@@ -4,7 +4,7 @@
 
 HolographiX is a holographic, matrix-based media and networking substrate engineered for resilient, extreme connectivity.
 
-HolographiX (short for **Holographic Information Matrix**, **HIM**) turns an object into a **population of interchangeable contributions**. Any non‑empty subset yields a coherent **best‑so‑far estimate** that stays usable under loss, burst loss, jitter, reordering, duplication, fading links, mobility, intermittent connectivity. The design target is not “deliver every bit reliably”; it is **maximum utility per surviving contribution**, with an anytime reconstruction path that densifies as fragments arrive.
+HolographiX (short for **Holographic Information Matrix**) turns an object into a **population of interchangeable contributions**. Any non‑empty subset yields a coherent **best‑so‑far estimate** that stays usable under loss, burst loss, jitter, reordering, duplication, fading links, mobility, intermittent connectivity. The design target is not “deliver every bit reliably”; it is **maximum utility per surviving contribution**, with an anytime reconstruction path that densifies as fragments arrive.
 
 This repository ships a concrete, measurable instantiation of that contract for sensory media—RGB images and PCM WAV audio—because graceful degradation is immediately visible and benchmarkable. The abstraction is broader: the same contract fits any adaptive system where partial evidence should refine a coherent state instead of stalling a brittle stream. That includes regimes where Large Vision Models (LVMs) and Large Audio Models (LAMs) operate: missing evidence should reduce fidelity or confidence, not force a stop.
 
@@ -34,7 +34,7 @@ Packet‑atomic note: keep `--packet-bytes` below path MTU (defaults to ~1168 by
 
 ---
 
-## The contract: from streams to fields (what HIM actually means)
+## The contract: from streams to fields (what HolographiX actually means)
 
 Classic transport is endpoint‑centric: a stream between two addresses that becomes meaningful only when completeness in order holds. That works for symbolic objects where “slightly wrong” often means “invalid”.
 

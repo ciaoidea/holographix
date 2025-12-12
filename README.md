@@ -4,9 +4,9 @@
 
 HolographiX is a holographic, matrix-based media and networking substrate engineered for resilient, extreme connectivity.
 
-HolographiX (short for **Holographic Information Matrix**) is a field‑centric way to represent and diffuse information when impairment is the normal case: loss, burst loss, jitter, reordering, duplication, fading links, mobility, intermittent connectivity. The design target is not “deliver every bit reliably”; it is **maximum utility per surviving contribution**, with an anytime reconstruction path that stays usable and densifies as fragments arrive.
+HolographiX (short for **Holographic Information Matrix**, **HIM**) turns an object into a **population of interchangeable contributions**. Any non‑empty subset yields a coherent **best‑so‑far estimate** that stays usable under loss, burst loss, jitter, reordering, duplication, fading links, mobility, intermittent connectivity. The design target is not “deliver every bit reliably”; it is **maximum utility per surviving contribution**, with an anytime reconstruction path that densifies as fragments arrive.
 
-In the current concrete implementation, the “information” is sensory media—RGB images and PCM WAV audio—because you can see and measure graceful degradation immediately. The abstraction itself is broader: the same contract fits any adaptive system where partial evidence should refine a coherent state instead of stalling a brittle stream. That includes the regimes where Large Vision Models (LVMs) and Large Audio Models (LAMs) operate: missing evidence should reduce fidelity or confidence, not force a stop.
+This repository ships a concrete, measurable instantiation of that contract for sensory media—RGB images and PCM WAV audio—because graceful degradation is immediately visible and benchmarkable. The abstraction is broader: the same contract fits any adaptive system where partial evidence should refine a coherent state instead of stalling a brittle stream. That includes regimes where Large Vision Models (LVMs) and Large Audio Models (LAMs) operate: missing evidence should reduce fidelity or confidence, not force a stop.
 
 ---
 
@@ -18,9 +18,9 @@ pip install -e ./src
 python3 -m holo src/flower.jpg 8                   # encode → writes src/flower.jpg.holo
 rm src/flower.jpg.holo/chunk_0000.holo            # simulate loss (optional)
 python3 -m holo src/flower.jpg.holo --output src/flower_recon.png
-```
+````
 
-Mental map: **codec** (coarse + residual, golden interleave) → **transport** (chunk framing, UDP segmentation) → **mesh** (gossip/INV/WANT, replication policy).
+Mental map: **codec** (coarse + residual, golden torsion interleave) → **transport** (chunk framing, UDP segmentation) → **mesh** (gossip/INV/WANT, replication policy).
 
 Quick shape (why it’s separable):
 
@@ -34,13 +34,13 @@ Packet‑atomic note: keep `--packet-bytes` below path MTU (defaults to ~1168 by
 
 ---
 
-## The contract: from streams to fields
+## The contract: from streams to fields (what HIM actually means)
 
-Classic transport is endpoint‑centric: a stream between two addresses that tries to become meaningful only when completeness in order holds. That works for symbolic objects where “slightly wrong” usually means “invalid”.
+Classic transport is endpoint‑centric: a stream between two addresses that becomes meaningful only when completeness in order holds. That works for symbolic objects where “slightly wrong” often means “invalid”.
 
-Perceptual content lives in a different regime. Images and audio have structure spread across space and time; you can lose samples and still have a coherent scene or phrase. HolographiX takes that as the specification: represent an object as a **field of contributions** such that almost any subset yields a globally consistent reconstruction whose quality grows smoothly with received evidence.
+Perceptual (and adaptive) content lives in a different regime: structure is spread across space/time, and partial evidence can still be coherent. HolographiX makes that the specification: represent an object as a **field of contributions** such that almost any subset yields a globally consistent reconstruction whose quality grows smoothly with received evidence.
 
-“Holographic Information Matrix” is meant literally. The object is not a fragile stream; it is a distributed population of evidence. The network is not asked to rescue a brittle representation. The representation is engineered so that survival of *any subset* remains meaningful.
+“Holographic Information Matrix” is meant literally: the object is not a fragile stream; it is a distributed population of evidence. The network is not asked to rescue a brittle representation. The representation is engineered so that survival of *any subset* remains meaningful.
 
 ---
 
@@ -56,7 +56,7 @@ Opaque arbitrary binaries are intentionally out of scope for now. Most binary fo
 
 ---
 
-## Layering model: codec, transport, field
+## Layering model: codec, transport, field (and why it matters)
 
 A useful way to read the repository is as three cleanly separated layers.
 
@@ -79,17 +79,17 @@ A compact view of roles is captured by the mapping below; it is an analogy used 
 
 <img width="800" height="800" alt="image" src="https://github.com/user-attachments/assets/ca097bb5-3aaa-4efa-ba5b-8e6495cbae44" />
 
-The separation is deliberate. The codec does not depend on sockets. The transport does not depend on thumbnails or waveforms. The field logic does not depend on networking primitives. That boundary is what lets you alter mesh policy without touching codec math, and evolve models without rewriting packet transport.
+The separation is deliberate. The codec does not depend on sockets. The transport does not depend on thumbnails or waveforms. The field logic does not depend on networking primitives. That boundary lets you change diffusion policy without touching codec math, and evolve models without rewriting packet transport.
 
 ---
 
-## Beyond media: the same contract for adaptive intelligence
+## Beyond media: the same contract for adaptive intelligence (what “generalization” means here)
 
 Even though the repository starts with images and audio, the core abstraction is not “a codec for JPEGs”. It is a **field‑centric representation‑and‑diffusion substrate**.
 
-Where a stream asks “did we receive the bytes yet?”, a field asks “did we receive enough evidence to act, and how much better did we get with the latest contribution?”. This maps cleanly onto adaptive systems: distributed robotics, multi‑sensor fusion, edge inference, opportunistic agent networks, and model‑centric pipelines where the “object” is a structured state (features, hypotheses, constraints, latent states) that should sharpen continuously as evidence arrives through unreliable channels.
+Where a stream asks “did we receive the bytes yet?”, a field asks “did we receive enough evidence to act, and how much better did we get with the latest contribution?”. This maps onto adaptive systems: distributed robotics, multi‑sensor fusion, edge inference, opportunistic agent networks, and model‑centric pipelines where the “object” is a structured state (features, hypotheses, constraints, latent states) that should sharpen continuously as evidence arrives through unreliable channels.
 
-The point is not to claim that today’s code “solves AI”. The point is that the **information contract** generalizes: represent state as coarse + refinements, mix refinements so individual contributions are interchangeable, and define a runtime that ingests contributions in any order while maintaining a coherent best‑so‑far estimate.
+This does not claim that today’s code “solves AI”. It claims something more precise and testable: the **information contract** generalizes. Represent state as coarse + refinements; mix refinements so individual contributions are interchangeable; ingest contributions in any order while maintaining a coherent best‑so‑far estimate.
 
 ---
 
@@ -117,7 +117,7 @@ The mixing primitive is a deterministic modular walk that behaves like a discret
 perm[i] = (i * step) mod N
 ```
 
-The step is chosen near the golden step to avoid short periodic alignments, then minimally adjusted to guarantee a full cycle. That adjustment is the operational **contorsion**: the smallest correction that makes the walk traverse every index exactly once.
+The step is chosen near the golden step to avoid short periodic alignments, then minimally adjusted to guarantee a full cycle. That adjustment is the operational **contorsion**: the smallest correction that enforces complete coverage (a single orbit that visits every index exactly once).
 
 The golden ratio is introduced from the simplest geometric condition. Take a segment and split it into a larger and a smaller part. The golden condition is that the ratio of the whole to the larger part is the same as the ratio of the larger part to the smaller:
 
@@ -147,7 +147,7 @@ Once the residual has been flattened into a 1‑D array of length `N`, the codec
 step ≈ (phi − 1) * N   (i.e. N / phi)
 ```
 
-The contorsion step is the coprime constraint:
+The contorsion constraint is the coprime condition:
 
 ```text
 gcd(step, N) = 1
@@ -226,19 +226,10 @@ Audio uses the standard library `wave`. Networking uses the standard library `so
 Encoding produces a `.holo` directory containing `chunk_XXXX.holo` files. Sample media live in `src/`; either run the commands from inside `src` (add `PYTHONPATH=.` if you did not install) or reference the `src/...` paths from the repo root.
 
 ```bash
-# show options
 python3 -m holo --help
-
-# encode an image with default chunk sizing (sample JPGs are under src/)
 python3 -m holo src/flower.jpg
-
-# encode with target chunk size around 32 KB
 python3 -m holo src/flower.jpg 32
-
-# decode from the holographic directory back to an image (trailing slash ok)
 python3 -m holo src/flower.jpg.holo      # or: python3 -m holo src/flower.jpg.holo/
-
-# audio (PCM WAV; supply your own .wav path)
 python3 -m holo /path/to/track.wav 32
 python3 -m holo /path/to/track.wav.holo
 ```
@@ -317,7 +308,6 @@ Adjust paths inside the units if your install lives elsewhere; with the current 
 cd src/codec_simulation
 npm install
 npm run dev
-# optional: build static bundle for local serving
 npm run build
 ```
 
@@ -335,16 +325,14 @@ from holo.codec import (
     stack_image_holo_dirs,
 )
 
-# encode several frames of the same scene into independent holographic fields
 encode_image_holo_dir("spacetime-frame-1.jpg", "frame 1", target_chunk_kb=32)
 encode_image_holo_dir("spacetime-frame-2.jpg", "frame 2", target_chunk_kb=32)
 encode_image_holo_dir("spacetime-frame-3.jpg", "frame 3", target_chunk_kb=32)
 
-# later, reconstruct and stack them as a "photon collector"
 stack_image_holo_dirs(
     ["spacetime-frame-1.jpg.holo", "spacetime-frame-2.jpg.holo", "spacetime-frame-3.jpg.holo"],
     "stacked_recon.png",
-    max_chunks=16,   # optional: limit chunks per exposure
+    max_chunks=16,
 )
 ```
 
@@ -367,32 +355,27 @@ python3 -m holo --stack frame1.jpg.holo frame2.jpg.holo frame3.jpg.holo \
 
 ## Multi‑object holographic fields (tissue‑like layout)
 
-When several images or audio tracks belong to the same conceptual object, you can store them in a single holographic field instead of separate directories. All objects then share the same “tissue”: losing chunks reduces detail across the whole pack instead of killing one file while leaving another perfect.
+When several images or audio tracks belong to the same conceptual object, you can store them in a single holographic field instead of separate directories. All objects share the same “tissue”: losing chunks reduces detail across the whole pack instead of killing one file while leaving another perfect.
 
 Using the Python API (container layer):
 
 ```python
 import holo
 
-# pack several objects into one holographic field
 holo.pack_objects_holo_dir(
     ["flower.jpg", "galaxy.jpg", "track.wav"],
     "scene.holo",
     target_chunk_kb=32,
 )
 
-# later, reconstruct individual objects by index
-holo.unpack_object_from_holo_dir("scene.holo", 0,
-                                 output_path="flower_rec.png")
-holo.unpack_object_from_holo_dir("scene.holo", 1,
-                                 output_path="galaxy_rec.png")
-holo.unpack_object_from_holo_dir("scene.holo", 2,
-                                 output_path="track_rec.wav")
+holo.unpack_object_from_holo_dir("scene.holo", 0, output_path="flower_rec.png")
+holo.unpack_object_from_holo_dir("scene.holo", 1, output_path="galaxy_rec.png")
+holo.unpack_object_from_holo_dir("scene.holo", 2, output_path="track_rec.wav")
 ```
 
 Tip: choose an `output_path` extension that matches the object type. Saving an image to `.wav` (or vice versa) will raise an error.
 
-In this layout the residuals of all objects live on a single golden‑ratio trajectory. Any surviving chunk contributes information about every object. If chunks are lost, all members of the pack become slightly blurrier or more lo‑fi, but all remain decodable. The field behaves like a shared perceptual tissue rather than a bag of independent files.
+In this layout the residuals of all objects live on a single golden‑ratio trajectory. Any surviving chunk contributes information about every object. If chunks are lost, all members of the pack become slightly blurrier or more lo‑fi, but all remain decodable.
 
 ---
 
@@ -406,18 +389,15 @@ from holo.field import Field
 f = Field(content_id="demo/image", chunk_dir="image.png.holo")
 
 summary = f.coverage()
-print("present blocks:", summary["present_blocks"],
-      "out of", summary["total_blocks"])
+print("present blocks:", summary["present_blocks"], "out of", summary["total_blocks"])
 
-img_path = f.best_decode_image()  # writes image.png_recon.png
+img_path = f.best_decode_image()
 print("best decode saved to", img_path)
 
 f.heal_to("image_healed.holo", target_chunk_kb=32)
 ```
 
-Healing is policy, not magic. It does not recreate missing information. It takes the best currently reconstructable percept, re‑encodes it into a fresh holographic population, and restores a clean distribution of coarse and residual data. The purpose is to prevent slow entropic decay when fragments are lost over time and to keep the field usable under long‑lived impairment.
-
-The intuitive picture is “grow new cells from the surviving tissue”: decoding with partial chunks gives you a coherent but lower‑detail percept; healing then increases the chunk population again by re‑encoding that percept so the field stays dense. This is effectively a field‑level interpolation: missing residual samples are zero‑filled, but the coarse base and surviving residuals are redistributed into a full set of chunks.
+Healing is policy, not magic. It does not recreate missing information. It takes the best currently reconstructable estimate, re‑encodes it into a fresh holographic population, and restores a clean distribution of coarse and residual data so the field stays usable under long‑lived impairment.
 
 ---
 
@@ -430,28 +410,24 @@ import holo
 from holo.field import Field
 from holo.net.arch import content_id_bytes_from_uri
 
-# Single-object encode / decode
 holo.encode_image_holo_dir("frame.png", "frame.png.holo", target_chunk_kb=32)
 holo.decode_image_holo_dir("frame.png.holo", "frame_recon.png")
+
 holo.encode_audio_holo_dir("track.wav", "track.wav.holo", target_chunk_kb=32)
 holo.decode_audio_holo_dir("track.wav.holo", "track_recon.wav")
 
-# Photon-collector stacking
 from holo.codec import stack_image_holo_dirs
 stack_image_holo_dirs(["t0.png.holo", "t1.png.holo"], "stacked.png", max_chunks=8)
 
-# Multi-object packing in one field
 holo.pack_objects_holo_dir(["image1.jpg", "image2.jpg", "track.wav"], "scene.holo", target_chunk_kb=32)
 holo.unpack_object_from_holo_dir("scene.holo", 0, "image1_rec.png")
 holo.unpack_object_from_holo_dir("scene.holo", 2, "track_rec.wav")
 
-# Field coverage + healing
 f = Field("demo/image", "frame.png.holo")
 print(f.coverage())
-f.best_decode_image()                 # writes frame_recon.png
-f.heal_to("frame_healed.holo")        # re-encodes current best view
+f.best_decode_image()
+f.heal_to("frame_healed.holo")
 
-# Build a content identifier (for transport/mesh)
 cid = content_id_bytes_from_uri("holo://demo/image")
 ```
 
@@ -522,7 +498,7 @@ print("sent")
 PY
 ```
 
-Above raw transport, `holo.net.mesh` adds gossip about which content IDs exist where and decides what to replicate and repeat. The intended style is that mesh policy remains small and explicit so different agents can adopt different replication strategies while reusing the same codec and framing. `MeshNode` accepts `auth_key` for HMAC verification, and `repeats` can be used to deliberately resend chunks on harsh links; basic counters for sent/stored chunks and MAC failures are exposed on `MeshNode.counters` and `ChunkAssembler.counters`.
+Above raw transport, `holo.net.mesh` adds gossip about which content IDs exist where and decides what to replicate and repeat. The intended style is that mesh policy remains small and explicit so different agents can adopt different replication strategies while reusing the same codec and framing. `MeshNode` accepts `auth_key` for HMAC verification, and `repeats` can be used to deliberately resend chunks on harsh links; counters for sent/stored chunks and MAC failures are exposed on `MeshNode.counters` and `ChunkAssembler.counters`.
 
 A practical note for harsh links: UDP segmentation turns one logical chunk into many datagrams. On lossy links, “receive the entire chunk” can become significantly less likely than “receive most datagrams”. A field‑centric evolution path is therefore to make the smallest network contribution coincide with the smallest decodable contribution, so partial arrivals still improve the percept. The repository keeps codec and transport separate precisely to allow that evolution without entangling math and sockets.
 
@@ -549,42 +525,24 @@ The `src/examples/` directory contains self‑contained scripts:
 Quick run (from repo root with editable install, or set `PYTHONPATH=src`):
 
 ```bash
-# graceful degradation on a synthetic gradient
 python3 src/examples/encode_and_corrupt.py
-
-# shared tissue packing + damaged extraction
 python3 src/examples/pack_and_extract.py
-
-# healing after chunk loss
 python3 src/examples/heal_demo.py
-
-# local UDP loopback using content IDs (holo://demo/galaxy)
 python3 src/examples/mesh_loopback.py
 
-# scene streaming (two terminals: sender + receiver)
 python3 src/examples/scene_stream_demo.py send --peer 127.0.0.1:6000 --stream-id demo_scene --frames 4 --fps 2.0
 python3 src/examples/scene_stream_demo.py recv --bind 0.0.0.0:6000 --stream-id demo_scene --frames 4 --duration 3 --decode-dir src/examples/out/scene_rx
 
-# PSNR vs chunk count (writes results to stdout)
 python3 src/examples/psnr_benchmark.py --image src/flower.jpg --target-chunk-kb 32
-
-# Audio SNR vs chunk count (provide your own WAV path)
 python3 src/examples/snr_benchmark_audio.py --wav /path/to/track.wav --block-count 12
-
-# Encode/decode timing (image and optional audio)
 python3 src/examples/timing_benchmark.py --image src/flower.jpg --audio /path/to/track.wav
-
-# Field inspection / curation
 python3 src/examples/field_tools.py list src/flower.jpg.holo
 
-# containerlab lab (see infra/containerlab/README.md)
 containerlab deploy -t src/infra/containerlab/holo-lab.clab.yml
 src/infra/containerlab/init_hosts.sh
 ```
 
 Scripts look for sample images under `src/`; audio benchmarks need a WAV you provide. Outputs land in `src/examples/out/`. Each script prints the paths it writes so you can open them quickly.
-
-What you get from the most common demos: `encode_and_corrupt.py` writes `src/examples/out/flower.holo` and `flower_recon.png` (or `gradient.*` if the sample is missing). `pack_and_extract.py` writes `src/examples/out/scene.holo` (packed) plus `src/examples/out/galaxy_recon.png` from the damaged field. `heal_demo.py` writes `src/examples/out/no-signal_degraded.png`, `no-signal_healed.holo`, `no-signal_healed.png`. `mesh_loopback.py` makes the sender write `src/examples/out/galaxy.holo`, the receiver reconstructs `src/examples/out/galaxy_mesh_recon.png` addressed by `holo://demo/galaxy`. `scene_stream_demo.py` writes per‑frame containers under `src/examples/out/scene_stream/`, while the receiver decodes frames under the chosen `--decode-dir` (image + audio) for anytime decode.
 
 ---
 
@@ -600,9 +558,9 @@ If you care about interaction realism (prosody, facial motion, affect), it is al
 
 ---
 
-## The `holo://` protocol in the HolographiX agent network
+## The `holo://` naming scheme in the HolographiX agent network
 
-In HolographiX, a network of agents and Large Media Models talks by reading and writing shared holographic fields. `holo://` is the scheme; the part that follows is the application‑level name of one such field:
+In HolographiX, `holo://...` is a **content naming scheme** used to derive a stable `content_id`. It is not a transport protocol. The scheme lets agents and tools refer to the same field identity independently of sockets, sessions, or endpoints.
 
 ```text
 holo://object
@@ -610,7 +568,7 @@ holo://object
 
 From the library’s point of view, the entire string `holo://object` is opaque. The helper `content_id_bytes_from_uri` maps it deterministically to a fixed‑length `content_id`. That `content_id`, plus a `chunk_id`, is what actually travels on the wire and what the mesh stores, gossips, and replicates.
 
-The “object” named here is whatever the system treats as one holographic content field. It can be a single image, a stack of frames, an audio track, a packed group of media, or a derived product such as a global dust map or a learned state that a Large Media Model uses internally. All chunks that belong to that field share the same `content_id` and differ only by `chunk_id`.
+The “object” named here is whatever the system treats as one holographic content field: a single image, a stack of frames, an audio track, a packed group of media, or a derived product such as a global dust map or a learned state used by a model. All chunks that belong to that field share the same `content_id` and differ only by `chunk_id`.
 
 A Mars rover might publish a navcam frame as:
 
@@ -624,7 +582,7 @@ and a derived dust‑density field as:
 holo://mars/global/dust-field/daily-avg-2034-01-12
 ```
 
-In both cases the agent network sees the same pattern: a name `holo://object` is turned into a `content_id`, and a population of holographic chunks for that `content_id` is diffused through the mesh. Any agent or Large Media Model that knows the same `holo://object` name and receives some subset of its chunks can reconstruct a usable percept or state for that object, because fine detail has already been spread holographically across the chunk population.
+In both cases the pattern is the same: a name is turned into a `content_id`, and a population of holographic chunks for that `content_id` is diffused through the mesh. Any agent or model that knows the same `holo://object` name and receives some subset of its chunks can reconstruct a usable estimate because fine detail has already been spread holographically across the chunk population.
 
 ---
 
@@ -686,4 +644,3 @@ Rizzo, A. (2025). *HolographiX: a percept-first codec and network substrate for 
 <p align="center">
   © 2025 <a href="https://holographix.io">HolographiX</a>
 </p>
-

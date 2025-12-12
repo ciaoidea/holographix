@@ -14,9 +14,13 @@ dependencies = [
     "pillow",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
 [project.scripts]
 holographix = "holo.__main__:main"
 
 [tool.setuptools]
-packages = ["holo", "holo.net", "holo.cortex", "holo.models"]
-
+packages = ["holo", "holo.net", "holo.cortex", "holo.models", "holo.mind"]

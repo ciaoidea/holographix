@@ -156,12 +156,13 @@ holo/
   cortex/
     __init__.py      helpers for local storage
     store.py         persistent storage backend for chunk sets
-    visual.py        convenience helpers for visual experiments
 
   models/
-    __init__.py      registry that selects a signal model
-    image.py         image model: coarse thumbnail + int16 residual
-    audio.py         audio model: coarse subsampling + int16 residual
+    __init__.py      placeholder namespace for future signal models
+
+  mind/
+    __init__.py      mind-layer scaffold export
+    dynamics.py      minimal recurrent z(t) with Lyapunov + torsion update
 
   net/
     __init__.py      networking namespace
@@ -231,12 +232,6 @@ To observe graded reconstruction, delete or move some `chunk_*.holo` files and d
 
 <img width="1280" height="800" alt="image" src="https://github.com/user-attachments/assets/b1cd73a9-e4cc-43df-b528-d5c1c184ad52" />
 
-
----
-
-### Codec simulation UI (control deck)
-
-`codec_simulation/` contains an interactive React/Vite deck to poke the codec, visualize degradation, and emit equivalent CLI commands. It runs entirely in Node.js locally via the Vite dev server; an Electron shell is optional and not required.
 
 ---
 
@@ -514,11 +509,13 @@ The `examples/` directory contains self-contained scripts:
 - `pack_and_extract.py` packs `flower.jpg` and `galaxy.jpg` into one field, drops chunks, and extracts one object from the damaged field (falls back to synthetic checker/stripes if missing).
 - `heal_demo.py` damages `no-signal.jpg`, then uses `Field.heal_to` to regenerate a clean holographic population (falls back to a synthetic target if missing).
 - `mesh_loopback.py` simulates two UDP peers exchanging holographic chunks by `holo://` content ID using `galaxy.jpg` (falls back to a generated spiral if missing).
+- `scene_stream_demo.py` emits periodic multi-object frames (image + short audio) as containerised holographic chunks with deterministic `content_id` per frame, using MeshNode control-plane for WANT/INV.
 - `psnr_benchmark.py` encodes an image, randomly drops chunks, and reports PSNR statistics as chunk count varies.
 - `snr_benchmark_audio.py` measures SNR vs received chunks for WAV.
 - `timing_benchmark.py` measures encode/decode wall-clock times.
 - `field_tools.py` lists, prunes, copies, and merges `.holo` directories.
 - `infra/containerlab/` hosts a reproducible containerlab+FRR lab for HolographiX vs baseline comparisons with netem impairments.
+- `holo/mind/` hosts a minimal `MindDynamics` stub that evolves a latent `z(t)` with a Lyapunov-like potential plus antisymmetric torsion `Ω`, ready to sit above Field observations.
 
 Quick run (from repo root):
 
@@ -534,6 +531,10 @@ python3 examples/heal_demo.py
 
 # local UDP loopback using content IDs (holo://demo/galaxy)
 python3 examples/mesh_loopback.py
+
+# scene streaming (two terminals: sender + receiver)
+python3 examples/scene_stream_demo.py send --peer 127.0.0.1:6000 --stream-id demo_scene --frames 4 --fps 2.0
+python3 examples/scene_stream_demo.py recv --bind 0.0.0.0:6000 --stream-id demo_scene --frames 4 --duration 3 --decode-dir examples/out/scene_rx
 
 # PSNR vs chunk count (writes results to stdout)
 python3 examples/psnr_benchmark.py --image flower.jpg --target-chunk-kb 32
@@ -557,6 +558,7 @@ What you get:
 - `pack_and_extract.py` → `examples/out/scene.holo` (packed), plus `examples/out/galaxy_recon.png` from the damaged field.
 - `heal_demo.py` → `examples/out/no-signal_degraded.png`, `no-signal_healed.holo`, `no-signal_healed.png`.
 - `mesh_loopback.py` → sender writes `examples/out/galaxy.holo`, receiver reconstructs `examples/out/galaxy_mesh_recon.png` addressed by `holo://demo/galaxy`.
+- `scene_stream_demo.py` → sender writes per-frame containers under `out/scene_stream/`, receiver decodes frames under the chosen `--decode-dir` (image + audio) for anytime decode.
 
 All inputs the scripts need are under `examples/data/`; outputs land in `examples/out/`. Each script prints the paths it writes so you can open them quickly.
 
@@ -566,7 +568,7 @@ All inputs the scripts need are under `examples/data/`; outputs land in `example
 
 A holographic layout is not a vibe; it is measurable. Fix an input signal, encode into `B` chunks, then for each `k` in `[1..B]` draw many random subsets of size `k`, decode, and measure quality against the original. For images, PSNR/MSE are a reasonable first pass. For audio, SNR is a baseline and perceptual measures can be added if needed.
 
-Two expected signatures indicate genuine interchangeability: mean quality improves smoothly with `k`, and variance across subsets at fixed `k` stays small. When those hold, quality depends mostly on how many fragments survived rather than on which specific identifiers survived.
+Two expected signatures indicate genuine interchangeability: mean quality improves smoothly with `k`, and variance across subsets at fixed `k` stays small. When those hold, quality depends mostly on how many fragments survived rather than on which specific identifiers survived—given the fixed coarse layout and coprime permutation, the residual variance is mainly driven by per-chunk gain/importance (e.g., `chunk_XXXX.holo.meta`).
 
 If you care about interaction realism (prosody, facial motion, affect), it is also worth measuring reconstruction stability as fragments arrive in time with burst loss and reordering. The goal is not only “good after enough data”, but “continuous without spurious discontinuities during acquisition”.
 
@@ -575,13 +577,13 @@ If you care about interaction realism (prosody, facial motion, affect), it is al
 ---
 
 
-## `The holo:// protocol in the HolographiX agent network
+## The holo:// protocol in the HolographiX agent network
 
 In HolographiX, a network of agents and Large Media Models talks by reading and writing shared holographic fields. `holo://` is the scheme; the part that follows is the application-level name of one such field:
 
 ```text
 holo://object
-````
+```
 
 From the library’s point of view, the entire string `holo://object` is opaque. The helper `content_id_bytes_from_uri` maps it deterministically to a fixed-length `content_id`. That `content_id`, plus a `chunk_id`, is what actually travels on the wire and what the mesh stores, gossips, and replicates.
 

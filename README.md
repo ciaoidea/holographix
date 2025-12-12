@@ -232,6 +232,21 @@ python3 -m holo /path/to/track.wav.holo
 
 To observe graded reconstruction, delete or move some `chunk_*.holo` files and decode again. The output should remain valid and globally coherent, with reduced detail.
 
+### Quick profiles (encode/decode)
+
+Pre-tuned modes for mesh MTU and archive use.
+
+| Profile             | When to use it                                                             | Encode command                                                                                                                                  | Decode command                                                                                                                                                                                              |
+| ------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `image-live-mesh`   | “immediately useful” image on bad/mesh links                               | `python3 -m holo INPUT.jpg 1 --packet-bytes 1136 --coarse-side 16`                                                                              | `python3 -m holo INPUT.jpg.holo --output OUT.png`                                                                                                                                                           |
+| `image-archive`     | higher quality, fewer MTU limits (storage / non-real-time transfer)        | `python3 -m holo INPUT.jpg 32 --packet-bytes 0 --coarse-side 64`                                                                                | `python3 -m holo INPUT.jpg.holo --output OUT.png`                                                                                                                                                           |
+| `audio-live-mesh`   | robust audio (radio/mesh), low latency                                     | `python3 -m holo INPUT.wav 2 --packet-bytes 1136`                                                                                               | `python3 -m holo INPUT.wav.holo --output OUT.wav`                                                                                                                                                           |
+| `audio-archive`     | higher-fidelity audio, less overhead                                       | `python3 -m holo INPUT.wav 32 --packet-bytes 0`                                                                                                 | `python3 -m holo INPUT.wav.holo --output OUT.wav`                                                                                                                                                           |
+| `stack-images`      | “photon collector”: multiple exposures to raise SNR                        | `python3 -m holo FRAME1.jpg 8 && python3 -m holo FRAME2.jpg 8 && python3 -m holo FRAME3.jpg 8`                                                  | `python3 -m holo --stack FRAME1.jpg.holo FRAME2.jpg.holo FRAME3.jpg.holo --stack-max-chunks 16 --output STACK.png`                                                                                          |
+| `video-frames-live` | video as independent frames (robust: no inter-frame dependencies)          | `ffmpeg -i input.mp4 -vf fps=10 frames/%06d.png && for f in frames/*.png; do python3 -m holo "$f" 1 --packet-bytes 1136 --coarse-side 16; done` | `mkdir -p recon && for d in frames/*.png.holo; do python3 -m holo "$d" --output "recon/$(basename "$d" .holo).png"; done && ffmpeg -framerate 10 -i recon/%06d.png -c:v libx264 -pix_fmt yuv420p recon.mp4` |
+
+If you tell me the MTU/payload budget you need (e.g., 1200, 1000, 512 bytes) and target FPS for video, I’ll tune `--coarse-side` and `--chunk-kb` so you don’t have to guess.
+
 
 
 <img width="1280" height="800" alt="image" src="https://github.com/user-attachments/assets/b1cd73a9-e4cc-43df-b528-d5c1c184ad52" />

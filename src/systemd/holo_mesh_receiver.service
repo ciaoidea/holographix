@@ -1,0 +1,17 @@
+[Unit]
+Description=HolographiX mesh receiver
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=/opt/holographix/src
+EnvironmentFile=-/etc/default/holo_mesh_receiver
+WorkingDirectory=/opt/holographix/src
+ExecStart=/bin/sh -c '/usr/bin/python3 /opt/holographix/src/examples/holo_mesh_receiver.py --listen ${HXR_LISTEN:-0.0.0.0:5000} --out-dir ${HXR_OUT_DIR:-/opt/holographix/cortex_rx} --decode ${HXR_DECODE:-/opt/holographix/out/recon.png} --duration ${HXR_DURATION:-3600} --max-payload ${HXR_MAX_PAYLOAD:-1200} ${HXR_AUTH_OPTS} ${HXR_EXTRA_OPTS}'
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

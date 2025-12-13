@@ -2,6 +2,9 @@
 
 This guide shows how to run HolographiX as a global “holographic network”: multiple nodes that encode content into holographic chunks, gossip those chunks over UDP (mesh/INV/WANT), and let any node reconstruct from whatever subset it receives. Everything below is self-contained and uses only what ships in this repository.
 
+## Origin and radio lineage
+- Conceived to evolve classic packet radio in the amateur world, building on earlier work by IK2TYW: same spirit of resilient, sessionless exchange over challenging links, but extended to chunk any payload and exploit modern mesh/DTN patterns.
+
 ## What you can build with HolographiX
 - Resilient distribution of rich sensor payloads (any binary: waveforms, point clouds, maps, logs, parameters, media) that degrade gracefully under loss and improve as more chunks arrive.
 - Global sensor fusion: scattered sites contribute to a shared field (astronomy synthetic aperture, seismic/geo awareness, weather/air-quality overlays, RF sensing, SAR/LiDAR mosaics).

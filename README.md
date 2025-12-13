@@ -654,5 +654,5 @@ Rizzo, A. *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. [DOI: 1
 Rizzo, A. (2025). HolographiX: Holographic Information Matrices for Robust Coding in Communication and Inference Networks (v1.4.2). [DOI: 10.5281/zenodo.17919892](https://doi.org/10.5281/zenodo.17919892)
 
 <p align="center">
-  © 2025 <a href="https://holographix.io">HolographiX</a>
+  © 2025 <a href="https://holographix.io">holographix.io</a>
 </p>

@@ -13,7 +13,9 @@ The repository ships a concrete, measurable implementation for sensory media—R
 The design is intentionally life-like in an engineering sense: information behaves like tissue. You can heal a damaged field by re‑encoding the best current estimate into a fresh, well‑distributed population, restoring robustness without pretending to resurrect lost truth. You can also stack multiple partial “exposures” to raise SNR and sharpen detail over time—extending naturally from images and audio to learned or conceptual states, where a vague hypothesis can condense into a stable attractor as evidence accumulates.
 
 
-https://github.com/user-attachments/assets/2fa1544d-888d-4774-993f-b3bf00da855e
+
+<video controls src="https://github.com/user-attachments/assets/....mp4"></video>
+
 
 
 ---

@@ -201,11 +201,12 @@ src/
     cortex/               helpers for local storage; `store.py` is the backend
     models/               placeholder namespace for future signal models
     mind/                 mind-layer scaffold export; `dynamics.py` has z(t)
-    net/                  networking namespace (`transport`, `arch`, `mesh`)
+  net/                  networking namespace (`transport`, `arch`, `mesh`)
 
   codec_simulation/       React/Vite control deck that simulates codec
                           behavior, visualizes degradation, and generates
                           CLI commands
+  docs/                   English guide to running a global holographic network
   examples/               ready-to-run demos
   infra/                  lab + containerlab material
   systemd/                sample systemd units

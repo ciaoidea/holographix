@@ -2,11 +2,16 @@
 
 <img width="1280" height="720" alt="image" src="https://github.com/user-attachments/assets/ae95ff1f-b15f-46f3-bf1c-bebab868b851" />
 
-HolographiX is a holographic, matrix-based media and networking substrate engineered for resilient, extreme connectivity.
+HolographiX (HOLOGRAPHic Information matriX) is an information layer for hostile, real-world environments—lossy radio links, mesh networks, mobile nodes, space links—and for adaptive systems that must act on incomplete evidence.
 
-HolographiX (short for **Holographic Information Matrix**) turns an object into a **population of interchangeable contributions**. Any non‑empty subset yields a coherent **best‑so‑far estimate** that stays usable under loss, burst loss, jitter, reordering, duplication, fading links, mobility, intermittent connectivity. The design target is not “deliver every bit reliably”; it is **maximum utility per surviving contribution**, with an anytime reconstruction path that densifies as fragments arrive.
+The name is literal. “Holographic” means the object is represented so that each surviving fragment still carries globally useful information about the whole, the way a hologram remains recognizable even when you only have a piece. “Information matriX” points to the deterministic index-space mapping that spreads evidence across a matrix of interchangeable contributions rather than keeping it trapped in a brittle stream.
 
-This repository ships a concrete, measurable instantiation of that contract for sensory media—RGB images and PCM WAV audio—because graceful degradation is immediately visible and benchmarkable. The abstraction is broader: the same contract fits any adaptive system where partial evidence should refine a coherent state instead of stalling a brittle stream. That includes regimes where Large Vision Models (LVMs) and Large Audio Models (LAMs) operate: missing evidence should reduce fidelity or confidence, not force a stop.
+HolographiX turns an object into a population of chunks where almost any non-empty subset yields a coherent best-so-far reconstruction that improves smoothly as more chunks arrive. The target is not perfect delivery of every bit; it is maximum utility per surviving contribution under loss, burst loss, jitter, reordering, duplication, fading, mobility, and intermittent connectivity.
+
+This repository implements the contract concretely for RGB images and PCM WAV audio, because graceful degradation is immediately visible and measurable. But the contract generalizes: it fits any state (features, hypotheses, latents, sensor fusion) where missing evidence should reduce fidelity or confidence—not force a stop.
+
+Two “life-like” operations are built in as engineering tools: stacking (multiple partial exposures accumulate into higher SNR and sharper structure) and healing (re-encoding the best current estimate into a fresh, well-distributed population so the field stays robust as pieces decay or disappear).
+
 
 ---
 

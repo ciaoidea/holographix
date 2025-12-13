@@ -3,9 +3,10 @@
 This guide shows how to run HolographiX as a global “holographic network”: multiple nodes that encode content into holographic chunks, gossip those chunks over UDP (mesh/INV/WANT), and let any node reconstruct from whatever subset it receives. Everything below is self-contained and uses only what ships in this repository.
 
 ## Scope: why run it globally
-- Keep data useful under harsh links (loss, jitter, intermittent connectivity) for media, telemetry, or other perceptual signals.
-- Enable multi-site sensing/fusion: partial observations exchanged as chunks yield a best-so-far field that sharpens as more arrive.
-- Support opportunistic/offline sync and DTN-style meshes: no sessions required; gossip heals gaps when peers meet.
+- Build synthetic apertures from scattered observatories (ground + orbital): fuse high-res astronomy views as chunks arrive; tolerate long RTTs, loss, or intermittent contacts.
+- Collect planet-scale seismic/geo telemetry: share seismic/infrasound/GNSS chunks across fault-line sites so partial coverage still yields usable situational awareness.
+- Maintain multi-site perception for cameras/LiDAR/radar: a best-so-far field forms from whatever each site contributes; fidelity rises as more chunks arrive.
+- Survive harsh links (loss, jitter, mobility) and opportunistic sync: no sessions needed; DTN-friendly gossip heals gaps when peers meet.
 - Fit edge/IoT swarms: UDP + MTU-safe chunks over constrained radios; any subset reconstructs a usable view.
 - Provide a substrate under apps/agents: not an AI network, but a robust information layer they can consume/produce.
 

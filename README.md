@@ -14,7 +14,9 @@ The design is intentionally life-like in an engineering sense: information behav
 
 
 
-<video controls src="https://github.com/user-attachments/assets/....mp4"></video>
+<video controls src="https://github.com/user-attachments/assets/2fa1544d-888d-4774-993f-b3bf00da855e"></video>
+
+
 
 
 

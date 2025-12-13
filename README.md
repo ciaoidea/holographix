@@ -206,7 +206,7 @@ src/
   codec_simulation/       React/Vite control deck that simulates codec
                           behavior, visualizes degradation, and generates
                           CLI commands
-  docs/                   English guide to running a global holographic network
+  docs/                   Guide to running a global holographic network
   examples/               ready-to-run demos
   infra/                  lab + containerlab material
   systemd/                sample systemd units

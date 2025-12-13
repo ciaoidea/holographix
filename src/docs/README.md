@@ -10,6 +10,13 @@ This guide shows how to run HolographiX as a global “holographic network”: m
 - Fit edge/IoT swarms: UDP + MTU-safe chunks over constrained radios; any subset reconstructs a usable view.
 - Provide a substrate under apps/agents: not an AI network, but a robust information layer they can consume/produce.
 
+## SNMP vs HolographiX (both ride UDP)
+- **SNMP (manager/agent)**: best for control/monitoring (counters, state, traps). Assumes a reachable manager, no store-and-forward, payloads are small OIDs/values. Great to know if a station or sensor is alive and how it’s performing.
+- **HolographiX (mesh/gossip)**: moves the actual observational data as chunks (not just status): seismic/acoustic waveforms, GNSS windows, radar/LiDAR cubes, point clouds, map tiles, log batches, parameter vectors, images/audio/video. Any subset is immediately useful; more chunks densify quality.
+- **Resilience**: chunked gossip tolerates loss/jitter/RTT and DTN scenarios; nodes cache and re-radiate so late or intermittently connected peers still recover data. SNMP drops data if the manager can’t reach the agent in time.
+- **Topology**: peer mesh (no single coordinator) vs hierarchical manager/agent.
+- **Use together**: keep SNMP for health/config; run HolographiX for the rich sensor payloads when you need robustness and graceful degradation instead of binary “got it/lost it.”
+
 ## 1) Concepts (why it works)
 - **Field, not stream**: content is a field of interchangeable contributions. Any subset of chunks yields a coherent reconstruction; more chunks densify quality.
 - **Codec** (`holo.codec`): splits content into coarse + residual; distributes residual via golden-ratio interleave so every chunk touches the whole signal.

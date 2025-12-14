@@ -648,12 +648,18 @@ The project also adopts a methodological stance: the deepest design work happens
 ## References
 
 Pribram, K. H. & Carlton, E. H. (1986). *Holonomic brain theory in imaging and object perception*. Acta Psychologica, 63(2), 175–210. [https://doi.org/10.1016/0001-6918(86)90062-4](https://doi.org/10.1016/0001-6918%2886%2990062-4)
+
 Pribram, K. H. (1991). *Brain and Perception: Holonomy and Structure in Figural Processing*. Hillsdale, NJ: Lawrence Erlbaum Associates. ISBN 978-0-89859-995-4
+
 Bohm, D. (1980). *Wholeness and the Implicate Order*. London: Routledge & Kegan Paul (Routledge Classics ed. 2002, ISBN 978-0-415-28979-5).
+
 Bohm, D. & Hiley, B. J. (1993). *The Undivided Universe: An Ontological Interpretation of Quantum Theory*. London: Routledge. ISBN 978-0-415-12185-9
+
 Rizzo, A. *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. [DOI: 10.4236/apm.2023.139038](https://doi.org/10.4236/apm.2023.139038)
+
 Rizzo, A. (2025). HolographiX: Holographic Information Matrices for Robust Coding in Communication and Inference Networks (v1.4.2). [DOI: 10.5281/zenodo.17919892](https://doi.org/10.5281/zenodo.17919892)
-Rizzo, A. (2025). HolographiX: From Fragile Streams to Information Fields. [ISBN-13 ‏ : ‎ 979-8278598534](https://www.amazon.com/dp/B0G6VQ3PWD)
+
+Rizzo, A. (2025). HolographiX: From Fragile Streams to Information Fields. [ISBN-13: 979-8278598534](https://www.amazon.com/dp/B0G6VQ3PWD)
 
 <p align="center">
   © 2025 <a href="https://holographix.io">holographix.io</a>

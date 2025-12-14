@@ -14,18 +14,7 @@ The design is intentionally life-like in an engineering sense: information behav
 
 
 
-
-
-    <div class="case" data-key="demo4-b" data-json="assets/text/2p_see_u_again_gt_timestamp.json">
-      <h3>Spontaneous Singing</h3>
-      <div class="sync-block">
-        <audio id="audio-demo4-b" controls preload="metadata">
-          <source src="https://github.com/user-attachments/files/24148454/HolographiX_Data_Survives_Network_Failures1.mp3" type="audio/mpeg">
-        </audio>
-        <div class="transcript" id="trans-demo4-b"></div>
-      </div>
-    </div>
-  </section>
+https://github.com/user-attachments/files/24148454/HolographiX_Data_Survives_Network_Failures1.mp3
 
 
 <div align="center">

@@ -90,7 +90,7 @@ A compact view of roles is captured by the mapping below; it is an analogy used 
 | `arch`      | identity and compatibility (`holo://...` → content identifiers)        | receptors        |
 | `transport` | UDP framing, segmentation, reassembly                                  | impulses         |
 
-<img width="800" height="800" alt="image" src="https://github.com/user-attachments/assets/ca097bb5-3aaa-4efa-ba5b-8e6495cbae44" />
+<img width="800"  alt="image" src="https://github.com/user-attachments/assets/ca097bb5-3aaa-4efa-ba5b-8e6495cbae44" />
 
 The separation is deliberate. The codec does not depend on sockets. The transport does not depend on thumbnails or waveforms. The field logic does not depend on networking primitives. That boundary lets you change diffusion policy without touching codec math, and evolve models without rewriting packet transport.
 
@@ -250,7 +250,7 @@ python3 -m holo /path/to/track.wav.holo
 
 To observe graded reconstruction, delete or move some `chunk_*.holo` files and decode again. The output should remain valid and globally coherent, with reduced detail.
 
-<img width="1280" height="800" alt="image" src="https://github.com/user-attachments/assets/b1cd73a9-e4cc-43df-b528-d5c1c184ad52" />
+<img width="1280"  alt="image" src="https://github.com/user-attachments/assets/b1cd73a9-e4cc-43df-b528-d5c1c184ad52" />
 
 ### Quick profiles (encode/decode)
 
@@ -361,7 +361,7 @@ python3 -m holo --stack frame1.jpg.holo frame2.jpg.holo frame3.jpg.holo \
 ```
 
 <p align="center">
-  <img width="1280" height="800" alt="image" src="https://github.com/user-attachments/assets/c2b939d1-8911-4381-8bd7-a93e29f5401c" /><br/>
+  <img width="1280"  alt="image" src="https://github.com/user-attachments/assets/c2b939d1-8911-4381-8bd7-a93e29f5401c" /><br/>
   <em>HolographiX photon-collector mode: building high-resolution reconstructions from multiple <code>holo://objectID</code> exposures.</em>
 </p>
 
@@ -568,7 +568,7 @@ Two expected signatures indicate genuine interchangeability: mean quality improv
 
 If you care about interaction realism (prosody, facial motion, affect), it is also worth measuring reconstruction stability as fragments arrive in time with burst loss and reordering. The goal is not only “good after enough data”, but “continuous without spurious discontinuities during acquisition”.
 
-<img width="1280" height="800" alt="image" src="https://github.com/user-attachments/assets/e8c700f2-e5b6-424b-a848-a230294e8269" />
+<img width="1280"  alt="image" src="https://github.com/user-attachments/assets/e8c700f2-e5b6-424b-a848-a230294e8269" />
 
 ---
 

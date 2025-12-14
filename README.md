@@ -1,6 +1,6 @@
 # <img width="36" height="36" alt="image" src="https://github.com/user-attachments/assets/d7b26ef6-4645-4add-8ab6-717eb2fb12f2" /> HolographiX: Holographic Information matrix
 
-GitHub source: https://github.com/ciaoidea/holographix/
+GitHub source: [https://github.com/ciaoidea/holographix/](https://github.com/ciaoidea/holographix/)
 
 <img width="1280" alt="image" src="https://github.com/user-attachments/assets/ae95ff1f-b15f-46f3-bf1c-bebab868b851" />
 

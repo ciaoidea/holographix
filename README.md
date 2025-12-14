@@ -14,9 +14,6 @@ The design is intentionally life-like in an engineering sense: information behav
 
 
 
-https://github.com/user-attachments/files/24148454/HolographiX_Data_Survives_Network_Failures1.mp3
-
-
 <div align="center">
 
 https://github.com/user-attachments/assets/2fa1544d-888d-4774-993f-b3bf00da855e

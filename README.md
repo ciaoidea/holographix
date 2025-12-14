@@ -1,5 +1,7 @@
 # <img width="36" height="36" alt="image" src="https://github.com/user-attachments/assets/d7b26ef6-4645-4add-8ab6-717eb2fb12f2" /> HolographiX: Holographic Information matrix
 
+GitHub source: https://github.com/ciaoidea/holographix/
+
 <img width="1280" alt="image" src="https://github.com/user-attachments/assets/ae95ff1f-b15f-46f3-bf1c-bebab868b851" />
 
 HolographiX (HOLOGRAPHic Information matriX) is an information layer for hostile, real-world environments—lossy radio links, mesh networks, mobile nodes, space links—and for adaptive systems that must act on incomplete evidence. It is meant as a paradigm shift: from moving “streams that must arrive intact” to diffusing “fields of evidence that stay meaningful under damage”, across telecommunications, sensing/sensor-fusion, and semantic/agent networks.

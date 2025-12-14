@@ -6,7 +6,7 @@ Paper [DOI: 10.5281/zenodo.17919892](https://doi.org/10.5281/zenodo.17919892) | 
 
 <img width="1280" alt="image" src="https://github.com/user-attachments/assets/ae95ff1f-b15f-46f3-bf1c-bebab868b851" />
 
-HolographiX (HOLOGRAPHic Information MatriX) is an information layer for hostile, real-world environments—lossy radio links, mesh networks, mobile nodes, space links—and for adaptive systems that must act on incomplete evidence. It is meant as a paradigm shift: from moving “streams that must arrive intact” to diffusing “fields of evidence that stay meaningful under damage”, across telecommunications, sensing/sensor-fusion, and semantic/agent networks.
+HolographiX (Holographic Information MatriX) is an information layer for hostile, real-world environments—lossy radio links, mesh networks, mobile nodes, space links—and for adaptive systems that must act on incomplete evidence. It is meant as a paradigm shift: from moving “streams that must arrive intact” to diffusing “fields of evidence that stay meaningful under damage”, across telecommunications, sensing/sensor-fusion, and semantic/agent networks.
 
 The name is literal. “Holographic” means the object is represented so that each surviving fragment still carries globally useful information about the whole, the way a hologram remains recognizable even when you only have a piece. “Information matriX” points to the deterministic index-space mapping that spreads evidence across a matrix of interchangeable contributions rather than keeping it trapped in a brittle stream—so resilience is engineered into representation, not outsourced to a perfect link.
 

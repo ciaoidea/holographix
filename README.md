@@ -1,7 +1,8 @@
 # <img width="36" height="36" alt="image" src="https://github.com/user-attachments/assets/d7b26ef6-4645-4add-8ab6-717eb2fb12f2" /> HolographiX: Holographic Information Matrix
 
 | Paper [DOI: 10.5281/zenodo.17919892](https://doi.org/10.5281/zenodo.17919892) | Book: [ISBN-13: 979-8278598534](https://www.amazon.com/dp/B0G6VQ3PWD)
- | GitHub: [https://github.com/ciaoidea/holographix](https://github.com/ciaoidea/holographix) |
+ | GitHub: [https://github.com/ciaoidea/holographix](https://github.com/ciaoidea/holographix) | Podcast : [Holographix talk](https://github.com/user-attachments/assets/2fa1544d-888d-4774-993f-b3bf00da855e
+)
 
 
 <img width="1280" alt="image" src="https://github.com/user-attachments/assets/ae95ff1f-b15f-46f3-bf1c-bebab868b851" />
@@ -16,13 +17,6 @@ The repository ships a concrete, measurable implementation for sensory media—R
 
 The design is intentionally life-like in an engineering sense: information behaves like tissue. You can heal a damaged field by re‑encoding the best current estimate into a fresh, well‑distributed population, restoring robustness without pretending to resurrect lost truth. You can also stack multiple partial “exposures” to raise SNR and sharpen detail over time—extending naturally from images and audio to learned or conceptual states, where a vague hypothesis can condense into a stable attractor as evidence accumulates.
 
-
-
-<div align="center">
-
-https://github.com/user-attachments/assets/2fa1544d-888d-4774-993f-b3bf00da855e
-
-</div>
 
 
 ---

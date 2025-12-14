@@ -13,11 +13,19 @@ The repository ships a concrete, measurable implementation for sensory media—R
 The design is intentionally life-like in an engineering sense: information behaves like tissue. You can heal a damaged field by re‑encoding the best current estimate into a fresh, well‑distributed population, restoring robustness without pretending to resurrect lost truth. You can also stack multiple partial “exposures” to raise SNR and sharpen detail over time—extending naturally from images and audio to learned or conceptual states, where a vague hypothesis can condense into a stable attractor as evidence accumulates.
 
 
-<div align="center">
 
-https://github.com/user-attachments/files/24148454/HolographiX_Data_Survives_Network_Failures1.mp3)
 
-</div>
+
+    <div class="case" data-key="demo4-b" data-json="assets/text/2p_see_u_again_gt_timestamp.json">
+      <h3>Spontaneous Singing</h3>
+      <div class="sync-block">
+        <audio id="audio-demo4-b" controls preload="metadata">
+          <source src="https://github.com/user-attachments/files/24148454/HolographiX_Data_Survives_Network_Failures1.mp3" type="audio/mpeg">
+        </audio>
+        <div class="transcript" id="trans-demo4-b"></div>
+      </div>
+    </div>
+  </section>
 
 
 <div align="center">

@@ -1,7 +1,7 @@
 # <img width="36" height="36" alt="image" src="https://github.com/user-attachments/assets/d7b26ef6-4645-4add-8ab6-717eb2fb12f2" /> HolographiX: Holographic Information Matrix
 
 | Paper [DOI: 10.5281/zenodo.17919892](https://doi.org/10.5281/zenodo.17919892) | Book: [ISBN-13: 979-8278598534](https://www.amazon.com/dp/B0G6VQ3PWD)
- | GitHub: [https://github.com/ciaoidea/holographix](https://github.com/ciaoidea/holographix) | Medium [Article] (https://ciaoidea.medium.com/the-best-so-far-economy-why-i-m-betting-on-fields-not-streams-093b176be1e8) |
+ | GitHub: [https://github.com/ciaoidea/holographix](https://github.com/ciaoidea/holographix) | Medium [Article](https://ciaoidea.medium.com/the-best-so-far-economy-why-i-m-betting-on-fields-not-streams-093b176be1e8) |
  
  Podcast : [Dec 13th, 2025](https://github.com/user-attachments/assets/2fa1544d-888d-4774-993f-b3bf00da855e)
 

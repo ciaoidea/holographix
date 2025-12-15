@@ -4,7 +4,8 @@
 
 <img width="1280" alt="image" src="https://github.com/user-attachments/assets/ae95ff1f-b15f-46f3-bf1c-bebab868b851" />
 
-HolographiX (Holographic Information MatriX) is a holographic digital framework and protocol for information survivability: it encodes objects into interchangeable, globally informative contributions so that any non-empty subset yields an immediate coherent best-so-far estimate that refines progressively as more evidence arrives, even under loss, jitter, and reordering. It targets extreme networking and weak-signal regimes—disaster communications, sparse/partitioned meshes, mobile and space links, and astronomy-style sensing—where partial evidence must remain actionable. In short: fields, not streams.
+HolographiX (Holographic Information MatriX) is a holographic digital framework and protocol for information survivability: it encodes objects into interchangeable, globally informative contributions so that any non-empty subset yields an immediate coherent best-so-far estimate that refines progressively as more evidence arrives, even under loss, jitter, and reordering. It targets extreme networking and weak-signal regimes—disaster communications, sparse/partitioned meshes, mobile and space links, astronomy-style sensing, and neural/semantic agent communication networks—where partial evidence must remain actionable. In short: fields, not streams.
+
 
 At the core sits the MatriX: a deterministic index-space mapping that spreads evidence across a population of interchangeable contributions, so damage reduces fidelity globally instead of breaking local regions or time segments. Around that primitive, the stack implements diffusion, content identity, ingestion, and healing without tying meaning to a perfect link or in-order delivery.
 

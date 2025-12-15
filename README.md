@@ -652,11 +652,11 @@ Bohm, D. (1980). *Wholeness and the Implicate Order*. London: Routledge & Kegan 
 
 Bohm, D. & Hiley, B. J. (1993). *The Undivided Universe: An Ontological Interpretation of Quantum Theory*. London: Routledge. ISBN 978-0-415-12185-9
 
-Rizzo, A. *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. DOI: 10.4236/apm.2023.139038
+Rizzo, A. *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. DOI: [10.4236/apm.2023.139038](https://doi.org/10.4236/apm.2023.139038)
 
-Rizzo, A. (2025). *HolographiX: Holographic Information MatriX for Robust Coding and Diffusion in Communication and Inference Networks* (v1.6). DOI: 10.5281/zenodo.17945340
+Rizzo, A. (2025). *HolographiX: Holographic Information MatriX for Robust Coding and Diffusion in Communication and Inference Networks* (v1.6). DOI: [10.5281/zenodo.17945340](https://zenodo.org/records/17945340)
 
-Rizzo, A. (2025). *HolographiX: From Fragile Streams to Information Fields*. ISBN-13: 979-8278598534
+Rizzo, A. (2025). *HolographiX: From Fragile Streams to Information Fields*. [ISBN-13: 979-8278598534](https://www.amazon.com/dp/B0G6VQ3PWD)
 
 <p align="center">
   © 2025 <a href="https://holographix.io">holographix.io</a>

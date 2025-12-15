@@ -1,12 +1,10 @@
-<img width="36" height="36" alt="image" src="https://github.com/user-attachments/assets/d7b26ef6-4645-4add-8ab6-717eb2fb12f2" /> HolographiX: Holographic Information MatriX
+# <img width="36" height="36" alt="image" src="https://github.com/user-attachments/assets/d7b26ef6-4645-4add-8ab6-717eb2fb12f2" /> HolographiX: Holographic Information MatriX
 
-| <img width="20" height="20" alt="image" src="https://github.com/user-attachments/assets/5cb70ee6-e6f7-4c5e-95b5-95d4e306c877" /> Paper [DOI: 10.5281/zenodo.17919892](https://doi.org/10.5281/zenodo.17919892) | <img width="20" height="20" alt="image" src="https://github.com/user-attachments/assets/264bb318-20b2-4982-a4d0-f7e5373985f0" /> Book: [ISBN-13: 979-8278598534](https://www.amazon.com/dp/B0G6VQ3PWD) | <img width="20" height="20" alt="image" src="https://github.com/user-attachments/assets/e939c63a-fa18-4363-abfe-ed1e6a2f5afc" /> GitHub: [source V1.4](https://github.com/ciaoidea/HolographiX) | <img width="20" height="20" alt="image" src="https://github.com/user-attachments/assets/7ca2ea42-1fac-4fc0-a66f-cf5a5524fe1f" /> Medium [Article](https://ciaoidea.medium.com/the-best-so-far-economy-why-i-m-betting-on-fields-not-streams-093b176be1e8) | <img width="20" height="20" alt="image" src="https://github.com/user-attachments/assets/986237bf-7a4f-4b14-91c4-b144cd1b48d2" />  Podcast: [Dec 13th, 2025](https://github.com/user-attachments/assets/2fa1544d-888d-4774-993f-b3bf00da855e) |
+| <img width="20" height="20" alt="image" src="https://github.com/user-attachments/assets/5cb70ee6-e6f7-4c5e-95b5-95d4e306c877" /> Paper [DOI: 10.5281/zenodo.17919892](https://doi.org/10.5281/zenodo.17919892) | <img width="20" height="20" alt="image" src="https://github.com/user-attachments/assets/264bb318-20b2-4982-a4d0-f7e5373985f0" /> Book: [ISBN-13: 979-8278598534](https://www.amazon.com/dp/B0G6VQ3PWD) | <img width="20" height="20" alt="image" src="https://github.com/user-attachments/assets/e939c63a-fa18-4363-abfe-ed1e6a2f5afc" /> GitHub: [source V1.4](https://github.com/ciaoidea/HolographiX) | <img width="20" height="20" alt="image" src="https://github.com/user-attachments/assets/7ca2ea42-1fac-4fc0-a66f-cf5a5524fe1f" /> Medium [Article](https://ciaoidea.medium.com/the-best-so-far-economy-why-i-m-betting-on-fields-not-streams-093b176be1e8) | <img width="20" height="20" alt="image" src="https://github.com/user-attachments/assets/986237bf-7a4f-4b14-91c4-b144cd1b48d2" /> Podcast: [Dec 13th, 2025](https://github.com/user-attachments/assets/2fa1544d-888d-4774-993f-b3bf00da855e) |
 
 <img width="1280" alt="image" src="https://github.com/user-attachments/assets/ae95ff1f-b15f-46f3-bf1c-bebab868b851" />
 
-HolographiX (Holographic Information MatriX) is a holographic digital framework and protocol for information survivability: it encodes objects into interchangeable, globally informative contributions so that any non-empty subset yields an immediate best-so-far reconstruction that refines progressively as more evidence arrives, even under loss, jitter, and reordering. It targets extreme networking and weak-signal regimes—disaster communications, sparse/partitioned meshes, mobile and space links, and astronomy-style sensing—where partial evidence must remain actionable. In short: fields, not streams.
-
-
+HolographiX (Holographic Information MatriX) is a holographic digital framework and protocol for information survivability: it encodes objects into interchangeable, globally informative contributions so that any non-empty subset yields an immediate coherent best-so-far estimate that refines progressively as more evidence arrives, even under loss, jitter, and reordering. It targets extreme networking and weak-signal regimes—disaster communications, sparse/partitioned meshes, mobile and space links, and astronomy-style sensing—where partial evidence must remain actionable. In short: fields, not streams.
 
 At the core sits the MatriX: a deterministic index-space mapping that spreads evidence across a population of interchangeable contributions, so damage reduces fidelity globally instead of breaking local regions or time segments. Around that primitive, the stack implements diffusion, content identity, ingestion, and healing without tying meaning to a perfect link or in-order delivery.
 
@@ -199,7 +197,7 @@ src/
     cortex/               helpers for local storage; `store.py` is the backend
     models/               placeholder namespace for future signal models
     mind/                 mind-layer scaffold export; `dynamics.py` has z(t)
-  net/                  networking namespace (`transport`, `arch`, `mesh`)
+  net/                    networking namespace (`transport`, `arch`, `mesh`)
 
   codec_simulation/       React/Vite control deck that simulates codec
                           behavior, visualizes degradation, and generates
@@ -655,10 +653,11 @@ Bohm, D. & Hiley, B. J. (1993). *The Undivided Universe: An Ontological Interpre
 
 Rizzo, A. *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. DOI: 10.4236/apm.2023.139038
 
-Rizzo, A. (2025). HolographiX: Holographic Information Matrices for Robust Coding in Communication and Inference Networks (v1.4.2). DOI: 10.5281/zenodo.17919892
+Rizzo, A. (2025). *HolographiX: Holographic Information Matrices for Robust Coding in Communication and Inference Networks* (v1.4.2). DOI: 10.5281/zenodo.17919892
 
-Rizzo, A. (2025). HolographiX: From Fragile Streams to Information Fields. ISBN-13: 979-8278598534
+Rizzo, A. (2025). *HolographiX: From Fragile Streams to Information Fields*. ISBN-13: 979-8278598534
 
 <p align="center">
   © 2025 <a href="https://holographix.io">holographix.io</a>
 </p>
+

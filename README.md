@@ -640,8 +640,8 @@ The use of golden-ratio steps is an engineering technique for near-uniform sampl
 
 The project also adopts a methodological stance: the deepest design work happens at the level of chosen concepts and axioms (representation as fields, identity addressing, graded reconstruction) and is then tested by concrete experiments on impaired networks.
 
-## Applications
-### Holographic Decision Systems (Concept Extension)
+# Applications
+## Holographic Decision Systems (Concept Extension)
 
 HolographiX is built around a simple but unusually powerful contract: **any non-empty subset of chunks yields a coherent reconstruction**, and more chunks monotonically refine it. The same contract can be lifted from “reconstructing data” to “reconstructing the state of a decision” when information is fragmented, delayed, adversarial, or expensive to obtain.
 
@@ -776,8 +776,13 @@ def decide():
         if val > best_val:
             best_a, best_val = a, val
     return best_a, best_val
+````
 
+### Integration point
 
+This is a conceptual layer on top of HolographiX: the same holographic chunking idea can be used to move **belief updates** instead of raw bytes. If you already use HolographiX for progressive reconstruction of observations (images, logs, telemetry), the decision layer can consume the progressively reconstructed observation and emit progressively refined Δs chunks back into the network.
+
+In short: the “holographic” property becomes a way to make difficult decision pipelines behave like well-designed physical instruments—always giving you a reading, and improving it continuously as more signal arrives.
 
 ---
 

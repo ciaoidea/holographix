@@ -641,7 +641,7 @@ The use of golden-ratio steps is an engineering technique for near-uniform sampl
 The project also adopts a methodological stance: the deepest design work happens at the level of chosen concepts and axioms (representation as fields, identity addressing, graded reconstruction) and is then tested by concrete experiments on impaired networks.
 
 # Applications
-## Holographic Decision Systems (Concept Extension)
+## Holographic Decision Systems (HDS)
 
 HolographiX is built around a simple but unusually powerful contract: **any non-empty subset of chunks yields a coherent reconstruction**, and more chunks monotonically refine it. The same contract can be lifted from “reconstructing data” to “reconstructing the state of a decision” when information is fragmented, delayed, adversarial, or expensive to obtain.
 

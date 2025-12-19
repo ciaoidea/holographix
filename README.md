@@ -1,13 +1,13 @@
-# HolographiX (v1.4) – Holographic codec for lossy, unordered worlds
+# HolographiX 3.0 – Holographic codec for lossy, unordered worlds
 
 HolographiX turns images and audio into holographic chunks: every non‑empty subset decodes to a coherent “best‑so‑far” view that refines smoothly as more chunks arrive. Think fields, not streams: detail fades when chunks are missing, never by punching holes in space or time.
 
 - **Coarse + residual**: a tiny coarse thumbnail/envelope plus a distributed residual.
 - **Golden interleaving**: residual samples are permuted so each chunk touches the whole signal.
 - **Stateless, deterministic**: no session/state needed; chunks are interchangeable.
-- **New in 1.4 (olonomic v3)**: residuals live in local wave bases (DCT for images, STFT for audio), drastically shrinking chunk sizes while keeping graceful degradation.
+- **New in 3.0 (olonomic v3)**: residuals live in local wave bases (DCT for images, STFT for audio), drastically shrinking chunk sizes while keeping graceful degradation.
 
-## What’s new (olonomic v3)
+## What’s new in 3.0 (olonomic v3)
 - **Images**: residual → block DCT (default 8×8), JPEG‑style quantization, zigzag, golden split across chunks. Missing chunks = missing waves, not missing pixels.
 - **Audio**: residual → STFT (Hann window, overlap‑add), per‑bin quantization, golden split across chunks. Missing chunks = softer/detail loss, not gaps/clicks.
 - **Metadata containers**: v3 coarse payloads carry codec params (block size, quality, padding for images; n_fft/hop/quality for audio) without changing header size.

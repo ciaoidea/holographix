@@ -36,7 +36,7 @@ __all__ = [
     "MindDynamics",
 ]
 
-__version__ = "0.2.0"
+__version__ = "3.0.0"
 
 
 from .codec import (  # noqa: E402

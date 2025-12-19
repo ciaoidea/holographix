@@ -75,6 +75,8 @@ python3 -m holo src/flower.jpg 1 --packet-bytes 1136 --coarse-side 16   # enable
 - `--stack dir1 dir2 ...` – stack multiple image .holo dirs (average recon)
 - `tnc-tx --chunk-dir DIR --uri holo://id --out tx.wav` – encode chunks to AFSK WAV
 - `tnc-rx --input rx.wav --out DIR [--uri holo://id]` – decode AFSK WAV into chunks
+- `tnc-tx ... --fs 9600 --baud 1200 --max-chunks 4` – reduce WAV size for quick tests
+- `tnc-wav-fix --input in.wav --out fixed.wav` – re-encode to PCM16 mono
 
 ## Python API highlights
 ```python
@@ -157,8 +159,8 @@ decoded = modem.decode(samples)
 assert decoded == [payload]
 ```
 
-## Radio transport model (HF/VHF)
-Holo does not turn images into audio content. The audio signal is just a modem carrier for bytes.
+## Ham radio transport (HF/VHF/UHF/10 GHz)
+Holo does not turn images into audio content. The audio you transmit is only a modem carrier for bytes.
 
 Pipeline overview:
 ```
@@ -178,7 +180,7 @@ Why datagrams on radio:
 
 In practice you can replace the AFSK demo with any modem that yields bytes. The Holo layers above it stay unchanged.
 
-Minimal WAV loopback (encode -> audio -> decode):
+### Minimal loopback (no radio)
 ```bash
 # 1) Encode image into .holo chunks
 PYTHONPATH=src python3 -m holo --olonomic src/flower.jpg --blocks 12
@@ -188,22 +190,30 @@ PYTHONPATH=src python3 -m holo tnc-tx \
   --chunk-dir src/flower.jpg.holo \
   --uri holo://demo/flower \
   --out tx_afsk.wav \
-  --prefer-gain
+  --prefer-gain \
+  --fs 9600 \
+  --baud 1200
 # add --include-recovery to send recovery_*.holo too
 
-# 3) Play tx_afsk.wav into the radio input (line-in preferred)
-
-# 4) Decode a received WAV back into chunks
+# 3) Decode the WAV back into chunks
 PYTHONPATH=src python3 -m holo tnc-rx \
-  --input rx_afsk.wav \
+  --input tx_afsk.wav \
   --uri holo://demo/flower \
-  --out rx.holo
+  --out rx.holo \
+  --baud 1200
 
-# 5) Decode the image from rx.holo
+# 4) Decode the image from rx.holo
 PYTHONPATH=src python3 -m holo rx.holo --output rx.png
 ```
 
-Ham Radio TX/RX recipes (HF/VHF/UHF/10 GHz, IK2TYW‑style):
+### On-air workflow (TX -> RX)
+1) Encode the image/audio into `.holo` chunks.
+2) Run `tnc-tx` to build a WAV (baseband audio).
+3) Feed WAV audio into the radio (line-in/IF preferred).
+4) Record RX audio into a WAV.
+5) Run `tnc-rx` to rebuild chunks, then decode the image/audio.
+
+### Ham radio TX/RX presets (HF/VHF/UHF/10 GHz, IK2TYW-style)
 ```bash
 # HF (robust, more spacing)
 PYTHONPATH=src python3 -m holo tnc-tx \
@@ -213,11 +223,13 @@ PYTHONPATH=src python3 -m holo tnc-tx \
   --max-payload 320 \
   --gap-ms 40 \
   --prefer-gain \
-  --include-recovery
+  --include-recovery \
+  --baud 1200
 PYTHONPATH=src python3 -m holo tnc-rx \
   --input rx_hf.wav \
   --uri holo://hf/demo \
-  --out rx_hf.holo
+  --out rx_hf.holo \
+  --baud 1200
 
 # VHF/UHF (cleaner links, faster cadence)
 PYTHONPATH=src python3 -m holo tnc-tx \
@@ -226,11 +238,13 @@ PYTHONPATH=src python3 -m holo tnc-tx \
   --out tx_vhf.wav \
   --max-payload 512 \
   --gap-ms 15 \
-  --prefer-gain
+  --prefer-gain \
+  --baud 1200
 PYTHONPATH=src python3 -m holo tnc-rx \
   --input rx_vhf.wav \
   --uri holo://vhf/demo \
-  --out rx_vhf.holo
+  --out rx_vhf.holo \
+  --baud 1200
 
 # 10 GHz / satellite (IK2TYW-style, high SNR path if available)
 PYTHONPATH=src python3 -m holo tnc-tx \
@@ -239,16 +253,33 @@ PYTHONPATH=src python3 -m holo tnc-tx \
   --out tx_10ghz.wav \
   --max-payload 800 \
   --gap-ms 5 \
-  --prefer-gain
+  --prefer-gain \
+  --baud 1200
 PYTHONPATH=src python3 -m holo tnc-rx \
   --input rx_10ghz.wav \
   --uri holo://10ghz/demo \
-  --out rx_10ghz.holo
+  --out rx_10ghz.holo \
+  --baud 1200
 ```
+
+Preset table (AFSK, conservative defaults):
+
+| Band/Link | --baud | --fs | --max-payload | --gap-ms | --include-recovery | Compression/AGC |
+| --- | --- | --- | --- | --- | --- | --- |
+| HF (noisy/variable) | 1200 | 9600 | 320 | 40 | yes | OFF |
+| VHF/UHF (cleaner) | 1200 | 9600 | 512 | 15 | optional | OFF |
+| 10 GHz / satellite | 1200 | 9600 | 800 | 5 | optional | OFF |
+
 Notes:
-- Use line‑in/IF audio from the rig or SDR when possible; avoid acoustic coupling.
+- Use line-in/IF audio from the rig or SDR when possible; avoid acoustic coupling.
+- Disable AGC/compression when you can; keep levels below clipping.
 - `--max-payload` and `--gap-ms` trade throughput vs robustness; tune for your link budget.
-- Keep TX/RX `--uri` consistent if you want the receiver to filter a single stream.
+- Keep TX/RX `--uri` and `--baud` consistent if you want the receiver to filter a single stream.
+- Size rule of thumb: `wav_bytes ≈ payload_bytes * (16 * fs / baud)`. Lower `fs`, raise `baud`, or limit `--max-chunks` for smaller files.
+- If you edited or trimmed a WAV and the header breaks, fix it with:
+  `PYTHONPATH=src python3 -m holo tnc-wav-fix --input rx.wav --out rx_pcm.wav`
+- If the file is badly corrupted, force raw decode:
+  `PYTHONPATH=src python3 -m holo tnc-rx --input rx.wav --raw-s16le --raw-fs 48000 --out rx.holo`
  
 
 ## HoloTV quickstart (experimental)

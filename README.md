@@ -76,7 +76,7 @@ python3 -m holo src/flower.jpg 1 --packet-bytes 1136 --coarse-side 16   # enable
 - `--stack dir1 dir2 ...` – stack multiple image .holo dirs (average recon)
 - `tnc-tx --chunk-dir DIR [--uri holo://id] --out tx.wav` – encode chunks to AFSK WAV (URI optional)
 - `tnc-rx --input rx.wav --out DIR [--uri holo://id]` – decode AFSK WAV into chunks
-- `tnc-tx ... --fs 9600 --baud 1200 --max-chunks 4` – reduce WAV size for quick tests
+- `tnc-tx ... --fs 9600 --baud 1200 --max-chunks 4` – reduce WAV size for quick tests (size scales with `fs/baud`)
 - `tnc-wav-fix --input in.wav --out fixed.wav` – re-encode to PCM16 mono
 
 ## Python API highlights
@@ -162,7 +162,8 @@ assert decoded == [payload]
 
 ## Ham radio transport (HF/VHF/UHF/SHF)
 Holo does not turn images into audio content. The audio you transmit is only a modem carrier for bytes.
-If WAVs are too large, encode with v3 (`--olonomic`) and lower `--quality` / `--overhead` as needed.
+WAV size is dominated by AFSK bitrate (~payload_bytes * 16 * fs / baud). To shrink WAVs, raise `--baud` or lower `--fs`,
+and optionally reduce payload size with v3 (`--olonomic`, lower `--quality` / `--overhead`).
 
 Pipeline overview:
 ```
@@ -184,7 +185,7 @@ In practice you can replace the AFSK demo with any modem that yields bytes. The 
 
 ### One-line commands (encode + TX, RX + decode)
 ```bash
-# WAV files too large? Use v3 compression: set --olonomic and lower quality/overhead.
+# WAV size scales with bitrate (~payload_bytes * 16 * fs / baud); shrink by raising --baud or lowering --fs.
 # Noisy band (HF-like, v3): encode -> tnc-tx
 PYTHONPATH=src python3 -m holo --olonomic src/flower.jpg --blocks 12 --quality 30 --recovery rlnc --overhead 0.25 \
   && PYTHONPATH=src python3 -m holo tnc-tx --chunk-dir src/flower.jpg.holo --uri holo://noise/demo --out tx_noise.wav \
@@ -225,7 +226,7 @@ Notes:
 - Disable AGC/compression when you can; keep levels below clipping.
 - `--max-payload` and `--gap-ms` trade throughput vs robustness; tune for your link budget.
 - If you run multiple streams, pass an explicit `--uri` on TX and RX to avoid mixing.
-- Size rule of thumb: `wav_bytes ≈ payload_bytes * (16 * fs / baud)`. Lower `fs`, raise `baud`, or limit `--max-chunks` for smaller files.
+- Size rule of thumb: `wav_bytes ~ payload_bytes * (16 * fs / baud)`; `--gap-ms` and `--preamble-len` add overhead. Lower `fs`, raise `baud`, or limit `--max-chunks` for smaller files.
 - `tnc-rx` defaults to best-effort PCM16 decode; disable with `--no-force-pcm16` if needed.
 - If you edited or trimmed a WAV and the header breaks, fix it with:
   `PYTHONPATH=src python3 -m holo tnc-wav-fix --input rx.wav --out rx_pcm.wav`

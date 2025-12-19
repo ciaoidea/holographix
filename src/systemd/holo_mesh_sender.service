@@ -1,0 +1,17 @@
+[Unit]
+Description=HolographiX mesh sender
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=/opt/holographix/src
+EnvironmentFile=-/etc/default/holo_mesh_sender
+WorkingDirectory=/opt/holographix/src
+ExecStart=/bin/sh -c '/usr/bin/python3 /opt/holographix/src/examples/holo_mesh_sender.py --uri ${HXS_URI:?} --chunk-dir ${HXS_CHUNK_DIR:?} --peer ${HXS_PEER:?} --max-payload ${HXS_MAX_PAYLOAD:-1200} --repeats ${HXS_REPEATS:-1} ${HXS_AUTH_OPTS} ${HXS_EXTRA_OPTS}'
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

@@ -1,5 +1,4 @@
-# <img width="36" height="36" alt="HolographiX logo" src="https://github.com/user-attachments/assets/d7b26ef6-4645-4add-8ab6-717eb2fb12f2" /> HolographiX: Holographic Information MatriX
-## V3.0 — Information fields for lossy, unordered worlds
+# <img width="36" height="36" alt="HolographiX logo" src="https://github.com/user-attachments/assets/d7b26ef6-4645-4add-8ab6-717eb2fb12f2" /> HolographiX 3.0 — Information fields for lossy, unordered worlds
 
 | <img width="20" height="20" alt="paper" src="https://github.com/user-attachments/assets/5cb70ee6-e6f7-4c5e-95b5-95d4e306c877" /> Paper [DOI: 10.5281/zenodo.17957464](https://doi.org/10.5281/zenodo.17957464) | <img width="20" height="20" alt="book" src="https://github.com/user-attachments/assets/264bb318-20b2-4982-a4d0-f7e5373985f0" /> Book: [ISBN-13: 979-8278598534](https://www.amazon.com/dp/B0G6VQ3PWD) | <img width="20" height="20" alt="github" src="https://github.com/user-attachments/assets/e939c63a-fa18-4363-abfe-ed1e6a2f5afc" /> GitHub: [source](https://github.com/ciaoidea/HolographiX) | <img width="20" height="20" alt="medium" src="https://github.com/user-attachments/assets/7ca2ea42-1fac-4fc0-a66f-cf5a5524fe1f" /> Medium [Article](https://ciaoidea.medium.com/the-best-so-far-economy-why-i-m-betting-on-fields-not-streams-093b176be1e8) | <img width="20" height="20" alt="podcast" src="https://github.com/user-attachments/assets/986237bf-7a4f-4b14-91c4-b144cd1b48d2" /> Podcast [2025 Dec 17th](https://github.com/user-attachments/assets/a3b973a8-d046-4bea-8516-bd8494601437) |
 
@@ -50,6 +49,11 @@ Try packet‑sized chunks (mesh/UDP):
 ```bash
 python3 -m holo src/flower.jpg 1 --packet-bytes 1136 --coarse-side 16
 ```
+
+<p align="center">
+  <img width="1280" alt="graded reconstruction" src="https://github.com/user-attachments/assets/b1cd73a9-e4cc-43df-b528-d5c1c184ad52" /><br/>
+  <em>Graded reconstruction: fewer chunks soften detail without holes.</em>
+</p>
 
 ## CLI cheat‑sheet
 - `python3 -m holo INPUT [TARGET_KB]` – encode file to `INPUT.holo`
@@ -106,6 +110,11 @@ src/infra/                 containerlab lab + netem/benchmark configs
 src/systemd/               sample systemd units for mesh sender/receiver/node
 ```
 
+<p align="center">
+  <img width="800" alt="architecture map" src="https://github.com/user-attachments/assets/ca097bb5-3aaa-4efa-ba5b-8e6495cbae44" /><br/>
+  <em>Codec → transport → field layering: genotype/phenotype/cortex/mesh analogy.</em>
+</p>
+
 ## Testing
 ```bash
 PYTHONPATH=src python3 -m unittest discover -s src/tests -p 'test_*.py'
@@ -128,11 +137,21 @@ PYTHONPATH=src python3 src/examples/pack_and_extract.py  # packs multiple object
 ## Results snapshot
 - `src/galaxy.jpg` @ block_count=16: v2 total ~1.69 MB, v3 (DCT) total ~0.35 MB with coherent single‑chunk recon.
 
+<p align="center">
+  <img width="1280"  alt="photon collector" src="https://github.com/user-attachments/assets/c2b939d1-8911-4381-8bd7-a93e29f5401c" /><br/>
+  <em>Photon-collector stacking: multiple exposures reinforce structure over noise.</em>
+</p>
+
 ## Design principles
 - **Interchangeability by construction**: golden permutation ensures quality depends mostly on chunk count, not chunk IDs.
 - **Graceful loss**: missing chunks zero high‑freq waves instead of creating spatial/temporal holes.
 - **Stateless decode**: any subset of valid chunks decodes without coordination.
 - **Transport‑agnostic**: codec math is separate from mesh/UDP; use your own transport if needed.
+
+<p align="center">
+  <img width="1280"  alt="psnr curves" src="https://github.com/user-attachments/assets/e8c700f2-e5b6-424b-a848-a230294e8269" /><br/>
+  <em>PSNR vs received chunks: quality rises smoothly; variance stays low.</em>
+</p>
 
 ## References
 

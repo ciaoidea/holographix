@@ -73,13 +73,27 @@ decode_audio_holo_dir("track.holo", "track_recon.wav")
 - **Audio**: residual = audio − coarse_up → STFT (sqrt-Hann, hop=n_fft/2 default) → scale by n_fft → per‑bin quant steps grow with freq (quality 1‑100) → int16 (Re/Im interleaved) → golden permutation → zlib per chunk. Recon via dequant, ISTFT overlap‑add, coarse + residual.
 - **Metadata**: packed inside coarse payload (PNG + OLOI_META for images; zlib coarse + OLOA_META for audio) so headers stay backward‑compatible.
 
-## Repository map (essentials)
+## Repository map
 ```
-src/holo/codec.py      core codecs (v1/v2/v3), headers, golden interleave
-src/holo/__main__.py   CLI entry
-src/holo/__init__.py   public API exports
-src/tests/             unit tests (PSNR/MSE monotonicity, size guards)
-src/examples/          ready-to-run demos and mesh helpers
+README.md                  top-level overview (this file)
+src/pyproject.toml         packaging for editable install
+src/requirements.txt       runtime deps (numpy, pillow)
+
+src/holo/                  core library
+  codec.py                 codecs v1/v2/v3 (image/audio), headers, golden interleave
+  __main__.py              CLI entry
+  __init__.py              public API surface
+  container.py             multi-object packing/unpacking
+  field.py                 field tracking + healing
+  cortex/                  storage helpers (store.py backend)
+  net/                     transport, mesh, arch (content IDs), datagram framing
+  models/, mind/           stubs/placeholders for higher-layer logic
+
+src/examples/              runnable demos (encode/decode, mesh_loopback, heal, pack/extract, benchmarks)
+src/tests/                 unit tests (round-trip, PSNR/MSE monotonicity, size guards)
+src/codec_simulation/      React/Vite control deck for codec exploration (optional)
+src/docs/, src/infra/      docs and containerlab/lab material
+src/systemd/               sample systemd units for mesh sender/receiver/node
 ```
 
 ## Testing

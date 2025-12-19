@@ -95,6 +95,12 @@ PYTHONPATH=src python3 src/examples/mesh_loopback.py
 # and writes a reconstructed image to src/examples/out/galaxy_mesh_recon.png
 ```
 
+Other functional checks (examples):
+```bash
+PYTHONPATH=src python3 src/examples/heal_demo.py         # damages chunks, heals via Field.heal_to, writes healed recon
+PYTHONPATH=src python3 src/examples/pack_and_extract.py  # packs multiple objects into one field, then extracts after chunk loss
+```
+
 ## Results snapshot
 - `src/galaxy.jpg` @ block_count=16: v2 total ~1.69 MB, v3 (DCT) total ~0.35 MB with coherent single‑chunk recon.
 

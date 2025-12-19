@@ -1,4 +1,8 @@
-# HolographiX 3.0 – Holographic codec for lossy, unordered worlds
+# <img width="36" height="36" alt="HolographiX logo" src="https://github.com/user-attachments/assets/d7b26ef6-4645-4add-8ab6-717eb2fb12f2" /> HolographiX 3.0 – Holographic codec for lossy, unordered worlds
+
+| <img width="20" height="20" alt="paper" src="https://github.com/user-attachments/assets/5cb70ee6-e6f7-4c5e-95b5-95d4e306c877" /> Paper [DOI: 10.5281/zenodo.17957464](https://doi.org/10.5281/zenodo.17957464) | <img width="20" height="20" alt="book" src="https://github.com/user-attachments/assets/264bb318-20b2-4982-a4d0-f7e5373985f0" /> Book: [ISBN-13: 979-8278598534](https://www.amazon.com/dp/B0G6VQ3PWD) | <img width="20" height="20" alt="github" src="https://github.com/user-attachments/assets/e939c63a-fa18-4363-abfe-ed1e6a2f5afc" /> GitHub: [source](https://github.com/ciaoidea/HolographiX) | <img width="20" height="20" alt="medium" src="https://github.com/user-attachments/assets/7ca2ea42-1fac-4fc0-a66f-cf5a5524fe1f" /> Medium [Article](https://ciaoidea.medium.com/the-best-so-far-economy-why-i-m-betting-on-fields-not-streams-093b176be1e8) | <img width="20" height="20" alt="podcast" src="https://github.com/user-attachments/assets/986237bf-7a4f-4b14-91c4-b144cd1b48d2" /> Podcast [2025 Dec 17th](https://github.com/user-attachments/assets/a3b973a8-d046-4bea-8516-bd8494601437) |
+
+<img width="1280" alt="holographix cover" src="https://github.com/user-attachments/assets/ae95ff1f-b15f-46f3-bf1c-bebab868b851" />
 
 HolographiX turns images and audio into holographic chunks: every non‑empty subset decodes to a coherent “best‑so‑far” view that refines smoothly as more chunks arrive. Think fields, not streams: detail fades when chunks are missing, never by punching holes in space or time.
 
@@ -92,7 +96,8 @@ src/holo/                  core library
 src/examples/              runnable demos (encode/decode, mesh_loopback, heal, pack/extract, benchmarks)
 src/tests/                 unit tests (round-trip, PSNR/MSE monotonicity, size guards)
 src/codec_simulation/      React/Vite control deck for codec exploration (optional)
-src/docs/, src/infra/      docs and containerlab/lab material
+src/docs/                  Global Holographic Network guide (mesh/INV-WANT, DTN, examples for sensor fusion/AI/maps)
+src/infra/                 containerlab lab + netem/benchmark configs
 src/systemd/               sample systemd units for mesh sender/receiver/node
 ```
 
@@ -124,7 +129,16 @@ PYTHONPATH=src python3 src/examples/pack_and_extract.py  # packs multiple object
 - **Stateless decode**: any subset of valid chunks decodes without coordination.
 - **Transport‑agnostic**: codec math is separate from mesh/UDP; use your own transport if needed.
 
-## License & paper
-Paper DOI: [10.5281/zenodo.17957464](https://doi.org/10.5281/zenodo.17957464)  
-Source: https://github.com/ciaoidea/HolographiX  
-License: see `LICENSE`
+## References
+
+- Pribram, K. H. & Carlton, E. H. (1986). *Holonomic brain theory in imaging and object perception*. Acta Psychologica, 63(2), 175–210. [https://doi.org/10.1016/0001-6918(86)90062-4](https://doi.org/10.1016/0001-6918%2886%2990062-4)
+- Pribram, K. H. (1991). *Brain and Perception: Holonomy and Structure in Figural Processing*. Hillsdale, NJ: Lawrence Erlbaum Associates. ISBN 978-0-89859-995-4
+- Bohm, D. (1980). *Wholeness and the Implicate Order*. London: Routledge (Routledge Classics ed. 2002, ISBN 978-0-415-28979-5).
+- Bohm, D. & Hiley, B. J. (1993). *The Undivided Universe: An Ontological Interpretation of Quantum Theory*. London: Routledge. ISBN 978-0-415-12185-9
+- Rizzo, A. *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. DOI: [10.4236/apm.2023.139038](https://doi.org/10.4236/apm.2023.139038)
+- Rizzo, A. (2025). *HolographiX: Holographic Information MatriX for Resilient Content Diffusion in Networks* (v1.6.2). DOI: [10.5281/zenodo.17957464](https://zenodo.org/records/17957464)
+- Rizzo, A. (2025). *HolographiX: From Fragile Streams to Information Fields*. [ISBN-13: 979-8278598534](https://www.amazon.com/dp/B0G6VQ3PWD)
+
+<p align="center">
+  © 2025 <a href="https://holographix.io">holographix.io</a>
+</p>

@@ -1,0 +1,17 @@
+[Unit]
+Description=HolographiX mesh node (RX+TX+gossip)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=/opt/holographix/src
+EnvironmentFile=-/etc/default/holo_mesh_node
+WorkingDirectory=/opt/holographix/src
+ExecStart=/bin/sh -c '/usr/bin/python3 /opt/holographix/src/examples/holo_mesh_node.py --bind ${HXN_BIND:-0.0.0.0:5001} --store-root ${HXN_STORE_ROOT:-/opt/holographix/cortex_node} --rate-hz ${HXN_RATE_HZ:-40} --forward-prob ${HXN_FORWARD_PROB:-0.25} --max-payload ${HXN_MAX_PAYLOAD:-1200} ${HXN_PEER_OPTS} ${HXN_AUTH_OPTS} ${HXN_SEED_OPTS} ${HXN_EXTRA_OPTS}'
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

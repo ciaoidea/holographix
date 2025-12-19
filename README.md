@@ -162,6 +162,7 @@ assert decoded == [payload]
 
 ## Ham radio transport (HF/VHF/UHF/SHF)
 Holo does not turn images into audio content. The audio you transmit is only a modem carrier for bytes.
+If WAVs are too large, encode with v3 (`--olonomic`) and lower `--quality` / `--overhead` as needed.
 
 Pipeline overview:
 ```
@@ -183,7 +184,7 @@ In practice you can replace the AFSK demo with any modem that yields bytes. The 
 
 ### One-line commands (encode + TX, RX + decode)
 ```bash
-# Noisy band (HF-like): encode -> tnc-tx
+# Noisy band (HF-like, v3): encode -> tnc-tx
 PYTHONPATH=src python3 -m holo --olonomic src/flower.jpg --blocks 12 --quality 30 --recovery rlnc --overhead 0.25 \
   && PYTHONPATH=src python3 -m holo tnc-tx --chunk-dir src/flower.jpg.holo --uri holo://noise/demo --out tx_noise.wav \
   --max-payload 320 --gap-ms 40 --prefer-gain --include-recovery --fs 9600 --baud 1200
@@ -192,7 +193,7 @@ PYTHONPATH=src python3 -m holo --olonomic src/flower.jpg --blocks 12 --quality 3
 PYTHONPATH=src python3 -m holo tnc-rx --input rx_noise.wav --uri holo://noise/demo --out rx_noise.holo --baud 1200 \
   && PYTHONPATH=src python3 -m holo rx_noise.holo --output rx.png --use-recovery --prefer-gain
 
-# Clean link (VHF/UHF/SHF): encode -> tnc-tx
+# Clean link (VHF/UHF/SHF, v3): encode -> tnc-tx
 PYTHONPATH=src python3 -m holo --olonomic src/flower.jpg --blocks 12 --quality 30 \
   && PYTHONPATH=src python3 -m holo tnc-tx --chunk-dir src/flower.jpg.holo --uri holo://clean/demo --out tx_clean.wav \
   --max-payload 512 --gap-ms 15 --prefer-gain --fs 9600 --baud 1200

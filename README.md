@@ -187,21 +187,23 @@ In practice you can replace the AFSK demo with any modem that yields bytes. The 
 ```bash
 # WAV size scales with bitrate (~payload_bytes * 16 * fs / baud); shrink by raising --baud or lowering --fs.
 # Noisy band (HF-like, v3): encode -> tnc-tx
-PYTHONPATH=src python3 -m holo --olonomic src/flower.jpg --blocks 12 --quality 30 --recovery rlnc --overhead 0.25 \
-  && PYTHONPATH=src python3 -m holo tnc-tx --chunk-dir src/flower.jpg.holo --uri holo://noise/demo --out tx_noise.wav \
-  --max-payload 320 --gap-ms 40 --prefer-gain --include-recovery --fs 9600 --baud 1200
+PYTHONPATH=src python3 -m holo --olonomic src/flower.jpg --blocks 12 --quality 30 --recovery rlnc --overhead 0.25
+
+PYTHONPATH=src python3 -m holo tnc-tx --chunk-dir src/flower.jpg.holo --uri holo://noise/demo --out tx_noise.wav \
+  --max-payload 320 --gap-ms 40 --preamble-len 16 --fs 9600 --baud 1200 --prefer-gain --include-recovery
 
 # Noisy band (HF-like): tnc-rx -> decode
-PYTHONPATH=src python3 -m holo tnc-rx --input rx_noise.wav --uri holo://noise/demo --out rx_noise.holo --baud 1200 \
-  && PYTHONPATH=src python3 -m holo rx_noise.holo --output rx.png --use-recovery --prefer-gain
+PYTHONPATH=src python3 -m holo tnc-rx --input tx_noise.wav --uri holo://noise/demo --out rx_noise.holo --baud 1200 --preamble-len 16
+
+PYTHONPATH=src python3 -m holo rx_noise.holo --output rx.png --use-recovery --prefer-gain
 
 # Clean link (VHF/UHF/SHF, v3): encode -> tnc-tx
 PYTHONPATH=src python3 -m holo --olonomic src/flower.jpg --blocks 12 --quality 30 \
   && PYTHONPATH=src python3 -m holo tnc-tx --chunk-dir src/flower.jpg.holo --uri holo://clean/demo --out tx_clean.wav \
-  --max-payload 512 --gap-ms 15 --prefer-gain --fs 9600 --baud 1200
+  --max-payload 512 --gap-ms 15 --preamble-len 16 --prefer-gain --fs 9600 --baud 1200
 
 # Clean link (VHF/UHF/SHF): tnc-rx -> decode
-PYTHONPATH=src python3 -m holo tnc-rx --input rx_clean.wav --uri holo://clean/demo --out rx_clean.holo --baud 1200 \
+PYTHONPATH=src python3 -m holo tnc-rx --input rx_clean.wav --uri holo://clean/demo --out rx_clean.holo --baud 1200 --preamble-len 16 \
   && PYTHONPATH=src python3 -m holo rx_clean.holo --output rx.png --prefer-gain
 ```
 

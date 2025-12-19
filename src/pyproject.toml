@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "holographix"
+version = "0.0.0"
+description = "Holographic codec and UDP substrate for resilient media."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "HolographiX contributors" }]
+dependencies = [
+    "numpy",
+    "pillow",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[project.scripts]
+holographix = "holo.__main__:main"
+
+[tool.setuptools]
+packages = ["holo", "holo.net", "holo.cortex", "holo.models", "holo.mind"]

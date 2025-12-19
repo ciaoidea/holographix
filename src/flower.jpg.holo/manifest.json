@@ -1,0 +1,203 @@
+{
+  "kind": "chunk_manifest",
+  "manifest_version": 1,
+  "base_kind": "image",
+  "codec_version": 3,
+  "block_count": 32,
+  "ordered_chunks": [
+    "chunk_0000.holo",
+    "chunk_0029.holo",
+    "chunk_0026.holo",
+    "chunk_0017.holo",
+    "chunk_0020.holo",
+    "chunk_0023.holo",
+    "chunk_0008.holo",
+    "chunk_0011.holo",
+    "chunk_0005.holo",
+    "chunk_0028.holo",
+    "chunk_0014.holo",
+    "chunk_0031.holo",
+    "chunk_0002.holo",
+    "chunk_0025.holo",
+    "chunk_0007.holo",
+    "chunk_0022.holo",
+    "chunk_0010.holo",
+    "chunk_0013.holo",
+    "chunk_0016.holo",
+    "chunk_0004.holo",
+    "chunk_0024.holo",
+    "chunk_0027.holo",
+    "chunk_0021.holo",
+    "chunk_0030.holo",
+    "chunk_0019.holo",
+    "chunk_0003.holo",
+    "chunk_0018.holo",
+    "chunk_0006.holo",
+    "chunk_0001.holo",
+    "chunk_0015.holo",
+    "chunk_0009.holo",
+    "chunk_0012.holo"
+  ],
+  "chunks": [
+    {
+      "file": "chunk_0000.holo",
+      "block_id": 0,
+      "score": 3640997.0
+    },
+    {
+      "file": "chunk_0029.holo",
+      "block_id": 29,
+      "score": 448248.0
+    },
+    {
+      "file": "chunk_0026.holo",
+      "block_id": 26,
+      "score": 378546.0
+    },
+    {
+      "file": "chunk_0017.holo",
+      "block_id": 17,
+      "score": 81759.0
+    },
+    {
+      "file": "chunk_0020.holo",
+      "block_id": 20,
+      "score": 78735.0
+    },
+    {
+      "file": "chunk_0023.holo",
+      "block_id": 23,
+      "score": 52127.0
+    },
+    {
+      "file": "chunk_0008.holo",
+      "block_id": 8,
+      "score": 31411.0
+    },
+    {
+      "file": "chunk_0011.holo",
+      "block_id": 11,
+      "score": 24869.0
+    },
+    {
+      "file": "chunk_0005.holo",
+      "block_id": 5,
+      "score": 20342.0
+    },
+    {
+      "file": "chunk_0028.holo",
+      "block_id": 28,
+      "score": 13492.0
+    },
+    {
+      "file": "chunk_0014.holo",
+      "block_id": 14,
+      "score": 12476.0
+    },
+    {
+      "file": "chunk_0031.holo",
+      "block_id": 31,
+      "score": 10766.0
+    },
+    {
+      "file": "chunk_0002.holo",
+      "block_id": 2,
+      "score": 7071.0
+    },
+    {
+      "file": "chunk_0025.holo",
+      "block_id": 25,
+      "score": 6960.0
+    },
+    {
+      "file": "chunk_0007.holo",
+      "block_id": 7,
+      "score": 4538.0
+    },
+    {
+      "file": "chunk_0022.holo",
+      "block_id": 22,
+      "score": 3444.0
+    },
+    {
+      "file": "chunk_0010.holo",
+      "block_id": 10,
+      "score": 3149.0
+    },
+    {
+      "file": "chunk_0013.holo",
+      "block_id": 13,
+      "score": 2706.0
+    },
+    {
+      "file": "chunk_0016.holo",
+      "block_id": 16,
+      "score": 2424.0
+    },
+    {
+      "file": "chunk_0004.holo",
+      "block_id": 4,
+      "score": 2414.0
+    },
+    {
+      "file": "chunk_0024.holo",
+      "block_id": 24,
+      "score": 1401.0
+    },
+    {
+      "file": "chunk_0027.holo",
+      "block_id": 27,
+      "score": 969.0
+    },
+    {
+      "file": "chunk_0021.holo",
+      "block_id": 21,
+      "score": 841.0
+    },
+    {
+      "file": "chunk_0030.holo",
+      "block_id": 30,
+      "score": 813.0
+    },
+    {
+      "file": "chunk_0019.holo",
+      "block_id": 19,
+      "score": 419.0
+    },
+    {
+      "file": "chunk_0003.holo",
+      "block_id": 3,
+      "score": 295.0
+    },
+    {
+      "file": "chunk_0018.holo",
+      "block_id": 18,
+      "score": 226.0
+    },
+    {
+      "file": "chunk_0006.holo",
+      "block_id": 6,
+      "score": 212.0
+    },
+    {
+      "file": "chunk_0001.holo",
+      "block_id": 1,
+      "score": 191.0
+    },
+    {
+      "file": "chunk_0015.holo",
+      "block_id": 15,
+      "score": 181.0
+    },
+    {
+      "file": "chunk_0009.holo",
+      "block_id": 9,
+      "score": 87.0
+    },
+    {
+      "file": "chunk_0012.holo",
+      "block_id": 12,
+      "score": 43.0
+    }
+  ]
+}

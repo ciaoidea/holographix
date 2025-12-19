@@ -187,12 +187,16 @@ def _parse_tnc_tx_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
         description="Encode a .holo chunk dir into an AFSK WAV file.",
     )
     p.add_argument("--chunk-dir", required=True, help="Input .holo directory with chunk_*.holo files.")
-    p.add_argument("--uri", required=True, help="Content URI (used to derive content_id).")
+    p.add_argument("--uri", default=None, help="Content URI (used to derive content_id).")
     p.add_argument("--out", default="tx_afsk.wav", help="Output WAV file path.")
     p.add_argument("--max-payload", type=int, default=512, help="Datagram payload size budget in bytes.")
     p.add_argument("--gap-ms", type=float, default=20.0, help="Silence gap between datagrams (ms).")
     p.add_argument("--prefer-gain", action="store_true", help="Send higher-gain chunks first when manifest/meta is present.")
     p.add_argument("--include-recovery", action="store_true", help="Include recovery_*.holo chunks if present.")
+    p.add_argument("--max-chunks", type=int, default=None, help="Limit number of chunks to send (debug/preview).")
+    p.add_argument("--fs", type=int, default=48000, help="Sample rate for WAV output (Hz).")
+    p.add_argument("--baud", type=int, default=1200, help="AFSK baud rate.")
+    p.add_argument("--preamble-len", type=int, default=16, help="AFSK frame preamble length (bytes).")
     return p.parse_args(argv)
 
 
@@ -204,29 +208,67 @@ def _parse_tnc_rx_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     p.add_argument("--input", required=True, help="Input WAV file (recorded from radio).")
     p.add_argument("--out", required=True, help="Output directory for reconstructed chunks.")
     p.add_argument("--uri", default=None, help="Optional content URI to filter by.")
+    p.add_argument("--baud", type=int, default=1200, help="AFSK baud rate.")
+    p.add_argument("--preamble-len", type=int, default=16, help="AFSK frame preamble length (bytes).")
+    p.add_argument("--raw-s16le", action="store_true", help="Treat input as raw PCM s16le (ignore WAV header).")
+    p.add_argument("--raw-fs", type=int, default=None, help="Sample rate for raw PCM input.")
+    p.add_argument("--raw-ch", type=int, default=1, help="Channels for raw PCM input.")
+    p.add_argument("--raw-skip", type=int, default=None, help="Bytes to skip for raw PCM input.")
+    p.add_argument("--force-pcm16", action="store_true", default=True, help="Force best-effort PCM16 decode (default: on).")
+    p.add_argument("--no-force-pcm16", dest="force_pcm16", action="store_false", help="Disable forced PCM16 decode.")
     return p.parse_args(argv)
+
+
+def _parse_tnc_wav_fix_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        prog="python -m holo tnc-wav-fix",
+        description="Re-encode a WAV (or raw s16le) into PCM16 mono.",
+    )
+    p.add_argument("--input", required=True, help="Input WAV file (or raw PCM if --raw-s16le).")
+    p.add_argument("--out", required=True, help="Output PCM16 WAV path.")
+    p.add_argument("--fs", type=int, default=None, help="Output sample rate (Hz).")
+    p.add_argument("--raw-s16le", action="store_true", help="Treat input as raw PCM s16le (ignore WAV header).")
+    p.add_argument("--raw-fs", type=int, default=None, help="Sample rate for raw PCM input.")
+    p.add_argument("--raw-ch", type=int, default=1, help="Channels for raw PCM input.")
+    p.add_argument("--raw-skip", type=int, default=None, help="Bytes to skip for raw PCM input.")
+    return p.parse_args(argv)
+
+
+def _default_uri_from_path(path: str, *, prefix: str = "holo://radio/") -> str:
+    base = os.path.splitext(os.path.basename(path))[0]
+    safe = "".join(ch if (ch.isalnum() or ch in "-._") else "_" for ch in base)
+    if not safe:
+        safe = "default"
+    return prefix + safe
 
 
 def main(argv: Optional[list[str]] = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
 
-    if argv and argv[0] in {"tnc-tx", "tnc-rx"}:
-        from holo.tnc.cli import decode_wav_to_chunk_dir, encode_chunk_dir_to_wav
+    if argv and argv[0] in {"tnc-tx", "tnc-rx", "tnc-wav-fix"}:
+        from holo.tnc.cli import decode_wav_to_chunk_dir, encode_chunk_dir_to_wav, fix_wav_to_pcm
 
         cmd = argv[0]
         if cmd == "tnc-tx":
             args = _parse_tnc_tx_args(argv[1:])
+            uri = args.uri or _default_uri_from_path(args.chunk_dir, prefix="holo://radio/")
             encode_chunk_dir_to_wav(
                 args.chunk_dir,
                 args.out,
-                uri=args.uri,
+                uri=uri,
                 max_payload=int(args.max_payload),
                 gap_ms=float(args.gap_ms),
                 prefer_gain=bool(args.prefer_gain),
                 include_recovery=bool(args.include_recovery),
+                max_chunks=args.max_chunks,
+                fs=int(args.fs),
+                baud=int(args.baud),
+                preamble_len=int(args.preamble_len),
             )
             print(args.out)
+            if args.uri is None:
+                print(f"URI: {uri}")
             return 0
         if cmd == "tnc-rx":
             args = _parse_tnc_rx_args(argv[1:])
@@ -234,6 +276,26 @@ def main(argv: Optional[list[str]] = None) -> int:
                 args.input,
                 args.out,
                 uri=args.uri,
+                baud=int(args.baud),
+                preamble_len=int(args.preamble_len),
+                raw_s16le=bool(args.raw_s16le),
+                raw_fs=args.raw_fs,
+                raw_channels=int(args.raw_ch),
+                raw_skip=args.raw_skip,
+                force_pcm16=bool(args.force_pcm16),
+            )
+            print(args.out)
+            return 0
+        if cmd == "tnc-wav-fix":
+            args = _parse_tnc_wav_fix_args(argv[1:])
+            fix_wav_to_pcm(
+                args.input,
+                args.out,
+                fs=args.fs,
+                raw_s16le=bool(args.raw_s16le),
+                raw_fs=args.raw_fs,
+                raw_channels=int(args.raw_ch),
+                raw_skip=args.raw_skip,
             )
             print(args.out)
             return 0

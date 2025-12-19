@@ -1,5 +1,5 @@
 # <img width="36" height="36" alt="HolographiX logo" src="https://github.com/user-attachments/assets/d7b26ef6-4645-4add-8ab6-717eb2fb12f2" /> HolographiX: Holographic Information MatriX
-## V3.0 — Information fields for lossy, unordered worlds.
+## V3.0 — Information fields for lossy, unordered worlds
 
 | <img width="20" height="20" alt="paper" src="https://github.com/user-attachments/assets/5cb70ee6-e6f7-4c5e-95b5-95d4e306c877" /> Paper [DOI: 10.5281/zenodo.17957464](https://doi.org/10.5281/zenodo.17957464) | <img width="20" height="20" alt="book" src="https://github.com/user-attachments/assets/264bb318-20b2-4982-a4d0-f7e5373985f0" /> Book: [ISBN-13: 979-8278598534](https://www.amazon.com/dp/B0G6VQ3PWD) | <img width="20" height="20" alt="github" src="https://github.com/user-attachments/assets/e939c63a-fa18-4363-abfe-ed1e6a2f5afc" /> GitHub: [source](https://github.com/ciaoidea/HolographiX) | <img width="20" height="20" alt="medium" src="https://github.com/user-attachments/assets/7ca2ea42-1fac-4fc0-a66f-cf5a5524fe1f" /> Medium [Article](https://ciaoidea.medium.com/the-best-so-far-economy-why-i-m-betting-on-fields-not-streams-093b176be1e8) | <img width="20" height="20" alt="podcast" src="https://github.com/user-attachments/assets/986237bf-7a4f-4b14-91c4-b144cd1b48d2" /> Podcast [2025 Dec 17th](https://github.com/user-attachments/assets/a3b973a8-d046-4bea-8516-bd8494601437) |
 
@@ -73,7 +73,7 @@ python3 -m holo src/flower.jpg 1 --packet-bytes 1136 --coarse-side 16   # enable
 - `--heal-out DIR` – output dir for healing (default: derived)
 - `--heal-target-kb N` – chunk size for healing output
 - `--stack dir1 dir2 ...` – stack multiple image .holo dirs (average recon)
-- `tnc-tx --chunk-dir DIR --uri holo://id --out tx.wav` – encode chunks to AFSK WAV
+- `tnc-tx --chunk-dir DIR [--uri holo://id] --out tx.wav` – encode chunks to AFSK WAV (URI optional)
 - `tnc-rx --input rx.wav --out DIR [--uri holo://id]` – decode AFSK WAV into chunks
 - `tnc-tx ... --fs 9600 --baud 1200 --max-chunks 4` – reduce WAV size for quick tests
 - `tnc-wav-fix --input in.wav --out fixed.wav` – re-encode to PCM16 mono
@@ -180,31 +180,28 @@ Why datagrams on radio:
 
 In practice you can replace the AFSK demo with any modem that yields bytes. The Holo layers above it stay unchanged.
 
-### Minimal loopback (no radio)
+### One-line commands (encode + TX, RX + decode)
 ```bash
-# 1) Encode image into .holo chunks
-PYTHONPATH=src python3 -m holo --olonomic src/flower.jpg --blocks 12
+# Noisy band (HF-like): encode -> tnc-tx
+PYTHONPATH=src python3 -m holo --olonomic src/flower.jpg --blocks 12 --quality 30 --recovery rlnc --overhead 0.25 \
+  && PYTHONPATH=src python3 -m holo tnc-tx --chunk-dir src/flower.jpg.holo --uri holo://noise/demo --out tx_noise.wav \
+  --max-payload 320 --gap-ms 40 --prefer-gain --include-recovery --fs 9600 --baud 1200
 
-# 2) Generate an AFSK WAV that carries the chunk datagrams
-PYTHONPATH=src python3 -m holo tnc-tx \
-  --chunk-dir src/flower.jpg.holo \
-  --uri holo://demo/flower \
-  --out tx_afsk.wav \
-  --prefer-gain \
-  --fs 9600 \
-  --baud 1200
-# add --include-recovery to send recovery_*.holo too
+# Noisy band (HF-like): tnc-rx -> decode
+PYTHONPATH=src python3 -m holo tnc-rx --input rx_noise.wav --uri holo://noise/demo --out rx_noise.holo --baud 1200 \
+  && PYTHONPATH=src python3 -m holo rx_noise.holo --output rx.png --use-recovery --prefer-gain
 
-# 3) Decode the WAV back into chunks
-PYTHONPATH=src python3 -m holo tnc-rx \
-  --input tx_afsk.wav \
-  --uri holo://demo/flower \
-  --out rx.holo \
-  --baud 1200
+# Clean link (VHF/UHF/10 GHz): encode -> tnc-tx
+PYTHONPATH=src python3 -m holo --olonomic src/flower.jpg --blocks 12 --quality 30 \
+  && PYTHONPATH=src python3 -m holo tnc-tx --chunk-dir src/flower.jpg.holo --uri holo://clean/demo --out tx_clean.wav \
+  --max-payload 512 --gap-ms 15 --prefer-gain --fs 9600 --baud 1200
 
-# 4) Decode the image from rx.holo
-PYTHONPATH=src python3 -m holo rx.holo --output rx.png
+# Clean link (VHF/UHF/10 GHz): tnc-rx -> decode
+PYTHONPATH=src python3 -m holo tnc-rx --input rx_clean.wav --uri holo://clean/demo --out rx_clean.holo --baud 1200 \
+  && PYTHONPATH=src python3 -m holo rx_clean.holo --output rx.png --prefer-gain
 ```
+
+Loopback tip (no radio): use `tx_noise.wav` as `rx_noise.wav` to test the full chain.
 
 ### On-air workflow (TX -> RX)
 1) Encode the image/audio into `.holo` chunks.
@@ -213,76 +210,25 @@ PYTHONPATH=src python3 -m holo rx.holo --output rx.png
 4) Record RX audio into a WAV.
 5) Run `tnc-rx` to rebuild chunks, then decode the image/audio.
 
-### Ham radio TX/RX presets (HF/VHF/UHF/10 GHz, IK2TYW-style)
-```bash
-# HF (robust, more spacing)
-PYTHONPATH=src python3 -m holo tnc-tx \
-  --chunk-dir src/flower.jpg.holo \
-  --uri holo://hf/demo \
-  --out tx_hf.wav \
-  --max-payload 320 \
-  --gap-ms 40 \
-  --prefer-gain \
-  --include-recovery \
-  --baud 1200
-PYTHONPATH=src python3 -m holo tnc-rx \
-  --input rx_hf.wav \
-  --uri holo://hf/demo \
-  --out rx_hf.holo \
-  --baud 1200
+Suggested parameter table (AFSK, conservative defaults):
 
-# VHF/UHF (cleaner links, faster cadence)
-PYTHONPATH=src python3 -m holo tnc-tx \
-  --chunk-dir src/flower.jpg.holo \
-  --uri holo://vhf/demo \
-  --out tx_vhf.wav \
-  --max-payload 512 \
-  --gap-ms 15 \
-  --prefer-gain \
-  --baud 1200
-PYTHONPATH=src python3 -m holo tnc-rx \
-  --input rx_vhf.wav \
-  --uri holo://vhf/demo \
-  --out rx_vhf.holo \
-  --baud 1200
-
-# 10 GHz / satellite (IK2TYW-style, high SNR path if available)
-PYTHONPATH=src python3 -m holo tnc-tx \
-  --chunk-dir src/flower.jpg.holo \
-  --uri holo://10ghz/demo \
-  --out tx_10ghz.wav \
-  --max-payload 800 \
-  --gap-ms 5 \
-  --prefer-gain \
-  --baud 1200
-PYTHONPATH=src python3 -m holo tnc-rx \
-  --input rx_10ghz.wav \
-  --uri holo://10ghz/demo \
-  --out rx_10ghz.holo \
-  --baud 1200
-```
-
-Preset table (AFSK, conservative defaults):
-
-| Band/Link | --baud | --fs | --max-payload | --gap-ms | --include-recovery | Compression/AGC |
+| Link quality | --baud | --fs | --max-payload | --gap-ms | --include-recovery | Compression/AGC |
 | --- | --- | --- | --- | --- | --- | --- |
-| HF (noisy/variable) | 1200 | 9600 | 320 | 40 | yes | OFF |
-| VHF/UHF (cleaner) | 1200 | 9600 | 512 | 15 | optional | OFF |
-| 10 GHz / satellite | 1200 | 9600 | 800 | 5 | optional | OFF |
+| Noisy/variable (HF) | 1200 | 9600 | 320 | 40 | yes | OFF |
+| Clean link (VHF/UHF/10 GHz) | 1200 | 9600 | 512 | 15 | optional | OFF |
 
 Notes:
 - Use line-in/IF audio from the rig or SDR when possible; avoid acoustic coupling.
 - Disable AGC/compression when you can; keep levels below clipping.
 - `--max-payload` and `--gap-ms` trade throughput vs robustness; tune for your link budget.
-- Keep TX/RX `--uri` and `--baud` consistent if you want the receiver to filter a single stream.
+- If you run multiple streams, pass an explicit `--uri` on TX and RX to avoid mixing.
 - Size rule of thumb: `wav_bytes ≈ payload_bytes * (16 * fs / baud)`. Lower `fs`, raise `baud`, or limit `--max-chunks` for smaller files.
+- `tnc-rx` defaults to best-effort PCM16 decode; disable with `--no-force-pcm16` if needed.
 - If you edited or trimmed a WAV and the header breaks, fix it with:
   `PYTHONPATH=src python3 -m holo tnc-wav-fix --input rx.wav --out rx_pcm.wav`
 - If the file is badly corrupted, force raw decode:
   `PYTHONPATH=src python3 -m holo tnc-rx --input rx.wav --raw-s16le --raw-fs 48000 --out rx.holo`
-
-<img width="1280"  alt="TNC" src="https://github.com/user-attachments/assets/dbf50824-7a89-4258-af98-0ce1bda833aa" />
-
+ 
 
 ## HoloTV quickstart (experimental)
 Schedule chunks across a window of frames and feed them to a receiver:

@@ -73,6 +73,8 @@ python3 -m holo src/flower.jpg 1 --packet-bytes 1136 --coarse-side 16   # enable
 - `--heal-out DIR` – output dir for healing (default: derived)
 - `--heal-target-kb N` – chunk size for healing output
 - `--stack dir1 dir2 ...` – stack multiple image .holo dirs (average recon)
+- `tnc-tx --chunk-dir DIR --uri holo://id --out tx.wav` – encode chunks to AFSK WAV
+- `tnc-rx --input rx.wav --out DIR [--uri holo://id]` – decode AFSK WAV into chunks
 
 ## Python API highlights
 ```python
@@ -99,6 +101,8 @@ decode_audio_holo_dir("track.holo", "track_recon.wav")
 - **Chunk priority**: encoders write per‑chunk scores and `manifest.json` ordering. Use `--prefer-gain` for best‑K decode, and mesh sender priority flags to transmit high‑gain chunks first.
 - **Fixed‑point healing**: `Field.heal_fixed_point(...)` iterates healing until deltas stabilize, with drift guards for lossy v3.
 - **CLI healing**: use `--heal` or `--heal-fixed-point` on a `.holo` directory to re-encode the current best‑so‑far.
+- **TNC (experimental)**: `holo.tnc` provides a minimal AFSK modem + framing to carry `holo.net.transport` datagrams over audio.
+- **HoloTV (experimental)**: `holo.tv` schedules multi-frame windows and demuxes datagrams into per-frame fields above `holo.net` and `holo.tnc`.
 
 ## Update summary (latest)
 - **Recovery**: systematic RLNC (`recovery_*.holo`) + GF(256) solver, optional in v3 image/audio encode/decode; mesh can send recovery chunks.
@@ -138,6 +142,139 @@ Mesh sender priority + recovery:
 PYTHONPATH=src python3 src/examples/holo_mesh_sender.py --uri holo://demo/flower --chunk-dir src/flower.jpg.holo --peer 127.0.0.1:5000 --priority gain --send-recovery
 ```
 
+## TNC quickstart (experimental)
+AFSK loopback example (no soundcard required):
+```python
+import numpy as np
+from holo.tnc import AFSKModem
+from holo.tnc.channel import awgn
+
+modem = AFSKModem()
+payload = b"hello field"
+samples = modem.encode(payload)
+samples = awgn(samples, 30.0)  # optional noise
+decoded = modem.decode(samples)
+assert decoded == [payload]
+```
+
+## Radio transport model (HF/VHF)
+Holo does not turn images into audio content. The audio signal is just a modem carrier for bytes.
+
+Pipeline overview:
+```
+image/audio -> holo.codec -> chunks (.holo)
+  -> holo.net.transport (datagrams)
+  -> holo.tnc (AFSK/PSK/FSK/OFDM modem)
+  -> radio audio
+
+radio audio
+  -> holo.tnc -> datagrams -> chunks -> holo.codec decode
+```
+
+Why datagrams on radio:
+- CRC lets you drop corrupted frames instead of smearing errors across the image.
+- Loss/reordering is expected on HF; field chunks degrade in detail, not in geometry.
+- Interleaving and RLNC recovery stay possible without retransmissions.
+
+In practice you can replace the AFSK demo with any modem that yields bytes. The Holo layers above it stay unchanged.
+
+Minimal WAV loopback (encode -> audio -> decode):
+```bash
+# 1) Encode image into .holo chunks
+PYTHONPATH=src python3 -m holo --olonomic src/flower.jpg --blocks 12
+
+# 2) Generate an AFSK WAV that carries the chunk datagrams
+PYTHONPATH=src python3 -m holo tnc-tx \
+  --chunk-dir src/flower.jpg.holo \
+  --uri holo://demo/flower \
+  --out tx_afsk.wav \
+  --prefer-gain
+# add --include-recovery to send recovery_*.holo too
+
+# 3) Play tx_afsk.wav into the radio input (line-in preferred)
+
+# 4) Decode a received WAV back into chunks
+PYTHONPATH=src python3 -m holo tnc-rx \
+  --input rx_afsk.wav \
+  --uri holo://demo/flower \
+  --out rx.holo
+
+# 5) Decode the image from rx.holo
+PYTHONPATH=src python3 -m holo rx.holo --output rx.png
+```
+
+Ham Radio TX/RX recipes (HF/VHF/UHF/10 GHz, IK2TYW‑style):
+```bash
+# HF (robust, more spacing)
+PYTHONPATH=src python3 -m holo tnc-tx \
+  --chunk-dir src/flower.jpg.holo \
+  --uri holo://hf/demo \
+  --out tx_hf.wav \
+  --max-payload 320 \
+  --gap-ms 40 \
+  --prefer-gain \
+  --include-recovery
+PYTHONPATH=src python3 -m holo tnc-rx \
+  --input rx_hf.wav \
+  --uri holo://hf/demo \
+  --out rx_hf.holo
+
+# VHF/UHF (cleaner links, faster cadence)
+PYTHONPATH=src python3 -m holo tnc-tx \
+  --chunk-dir src/flower.jpg.holo \
+  --uri holo://vhf/demo \
+  --out tx_vhf.wav \
+  --max-payload 512 \
+  --gap-ms 15 \
+  --prefer-gain
+PYTHONPATH=src python3 -m holo tnc-rx \
+  --input rx_vhf.wav \
+  --uri holo://vhf/demo \
+  --out rx_vhf.holo
+
+# 10 GHz / satellite (IK2TYW-style, high SNR path if available)
+PYTHONPATH=src python3 -m holo tnc-tx \
+  --chunk-dir src/flower.jpg.holo \
+  --uri holo://10ghz/demo \
+  --out tx_10ghz.wav \
+  --max-payload 800 \
+  --gap-ms 5 \
+  --prefer-gain
+PYTHONPATH=src python3 -m holo tnc-rx \
+  --input rx_10ghz.wav \
+  --uri holo://10ghz/demo \
+  --out rx_10ghz.holo
+```
+Notes:
+- Use line‑in/IF audio from the rig or SDR when possible; avoid acoustic coupling.
+- `--max-payload` and `--gap-ms` trade throughput vs robustness; tune for your link budget.
+- Keep TX/RX `--uri` consistent if you want the receiver to filter a single stream.
+ 
+
+## HoloTV quickstart (experimental)
+Schedule chunks across a window of frames and feed them to a receiver:
+```python
+from pathlib import Path
+
+from holo.tv import HoloTVWindow, HoloTVReceiver
+from holo.cortex.store import CortexStore
+
+window = HoloTVWindow.from_chunk_dirs(
+    "holo://tv/demo",
+    ["frames/f000.holo", "frames/f001.holo"],
+    prefer_gain=True,
+)
+
+store = CortexStore("tv_store")
+rx = HoloTVReceiver("holo://tv/demo", store, frame_indices=[0, 1])
+
+for datagram in window.iter_datagrams():
+    rx.push_datagram(datagram)
+
+frame0_dir = rx.chunk_dir_for_frame(0)
+print("frame 0 chunks:", sorted(Path(frame0_dir).glob("chunk_*.holo")))
+```
+
 ## Olonomic v3 details (operational)
 - **Images**: residual = img − coarse_up → pad to block size → DCT‑II (ortho) per block/channel → JPEG‑style quant (quality 1‑100) → zigzag → int16 → golden permutation → zlib per chunk. Missing chunks zero coefficients; recon via dequant + IDCT + coarse.
 - **Audio**: residual = audio − coarse_up → STFT (sqrt-Hann, hop=n_fft/2 default) → scale by n_fft → per‑bin quant steps grow with freq (quality 1‑100) → int16 (Re/Im interleaved) → golden permutation → zlib per chunk. Recon via dequant, ISTFT overlap‑add, coarse + residual.
@@ -152,21 +289,40 @@ src/pyproject.toml         packaging for editable install
 src/requirements.txt       runtime deps (numpy, pillow)
 
 src/holo/                  core library
-  codec.py                 codecs v1/v2/v3 (image/audio), headers, golden interleave
-  __main__.py              CLI entry
+  codec.py                 codecs v1/v2/v3 (image/audio), chunk scoring, recovery hooks
+  recovery.py              GF(256) RLNC recovery chunks + solver
+  __main__.py              CLI entry (codec + tnc-tx/tnc-rx)
   __init__.py              public API surface
   container.py             multi-object packing/unpacking
-  field.py                 field tracking + healing
+  field.py                 field tracking + healing (fixed-point)
   cortex/                  storage helpers (store.py backend)
-  net/                     transport, mesh, arch (content IDs), datagram framing
-  models/, mind/           stubs/placeholders for higher-layer logic
+  net/                     transport + mesh + content IDs
+    transport.py           datagram framing/reassembly (HODT/HOCT)
+    mesh.py                UDP mesh sender/receiver + priority order
+    arch.py                content_id helpers
+  models/                  coarse model abstraction (downsample/latent_lowfreq/ae_latent)
+  tnc/                     modem + framing + WAV CLI
+    afsk.py                AFSK modem
+    frame.py               framing + CRC
+    cli.py                 tnc-tx/tnc-rx WAV helpers
+  tv/                      HoloTV scheduling + demux helpers
+  mind/                    stubs/placeholders for higher-layer logic
 
 src/examples/              runnable demos (encode/decode, mesh_loopback, heal, pack/extract, benchmarks)
-src/tests/                 unit tests (round-trip, PSNR/MSE monotonicity, size guards)
+src/tests/                 unit tests (round-trip, recovery, tnc, tv, healing)
 src/codec_simulation/      React/Vite control deck for codec exploration (optional)
 src/docs/                  Global Holographic Network guide (mesh/INV-WANT, DTN, examples for sensor fusion/AI/maps)
 src/infra/                 containerlab lab + netem/benchmark configs
 src/systemd/               sample systemd units for mesh sender/receiver/node
+src/tools/                 offline tools (e.g., AE coarse training/export)
+```
+
+## Layering map (at a glance)
+```
+holo.codec   -> chunk bytes (field representation)
+holo.net     -> datagrams (framing + mesh)
+holo.tnc     -> audio/radio modem (AFSK/FSK/PSK/etc)
+holo.tv      -> multi-frame scheduling (HoloTV windows)
 ```
 
 <p align="center">

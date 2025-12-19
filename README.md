@@ -281,7 +281,7 @@ Notes:
 - If the file is badly corrupted, force raw decode:
   `PYTHONPATH=src python3 -m holo tnc-rx --input rx.wav --raw-s16le --raw-fs 48000 --out rx.holo`
 
-<img width="800"  alt="TNC" src="https://github.com/user-attachments/assets/dbf50824-7a89-4258-af98-0ce1bda833aa" />
+<img width="1280"  alt="TNC" src="https://github.com/user-attachments/assets/dbf50824-7a89-4258-af98-0ce1bda833aa" />
 
 
 ## HoloTV quickstart (experimental)

@@ -99,7 +99,7 @@ This guide shows how to run HolographiX as a global “holographic network”: m
 Use packet-atomic settings so each chunk fits one UDP datagram (no fragmentation on bad links).
 ```bash
 python3 -m holo src/flower.jpg 1 --packet-bytes 1136 --coarse-side 16
-# writes src/flower.jpg.holo/ with chunk_XXXX.holo (+ .meta gain files)
+# writes src/flower.jpg.holo/ with chunk_XXXX.holo (+ .meta gain files); generated locally, not tracked
 ```
 Choose a content URI that identifies this object in the mesh:
 ```bash
@@ -129,7 +129,7 @@ Flags worth knowing:
 - `--auth-key` HMAC (hex, 32 bytes recommended). `--enc-key/--enc-key-id` adds AES-GCM.
 
 ### Seed the mesh with content
-Only one node needs to seed; gossip will spread inventories and chunks.
+Only one node needs to seed; gossip will spread inventories and chunks. Ensure `src/flower.jpg.holo/` exists from the encode step above.
 ```bash
 python3 src/examples/holo_mesh_node.py \
   --bind 0.0.0.0:5001 \

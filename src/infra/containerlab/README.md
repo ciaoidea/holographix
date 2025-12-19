@@ -35,6 +35,7 @@ docker exec clab-holo-lab-r1 tc qdisc del dev eth2 root
 
 ## Run HolographiX vs baseline
 - Inside `h1`/`h2` containers (python:3.11-slim), install deps: `pip install /workspace` or bind-mount the repo when deploying.
+- Generate chunks once (from `src/`): `python3 -m holo flower.jpg 1 --packet-bytes 1136 --coarse-side 16` (creates `flower.jpg.holo/`, generated locally).
 - HolographiX send: `python3 examples/holo_mesh_sender.py --uri holo://demo/flower --chunk-dir flower.jpg.holo --peer 10.10.3.2:5000`
 - HolographiX receive/decode: `python3 examples/holo_mesh_receiver.py --listen 0.0.0.0:5000 --out-dir cortex_rx --decode recon.png`
 - Baseline UDP send: `python3 examples/baseline_udp_sender.py --file flower.jpg --peer 10.10.3.2:6000`

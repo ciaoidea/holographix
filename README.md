@@ -30,6 +30,7 @@ pip install -e ./src          # install holo and deps (numpy, pillow)
 ```
 
 ## Quick start
+Note: `.holo` output directories (like `src/flower.jpg.holo/`) are generated locally and are not committed to the repo. Run the encode step before any example that reads `src/flower.jpg.holo`.
 Encode / decode an image:
 ```bash
 python3 -m holo src/flower.jpg 32                 # v2 (pixel residual), ~32 KB chunks
@@ -159,7 +160,7 @@ decoded = modem.decode(samples)
 assert decoded == [payload]
 ```
 
-## Ham radio transport (HF/VHF/UHF/10 GHz)
+## Ham radio transport (HF/VHF/UHF/SHF)
 Holo does not turn images into audio content. The audio you transmit is only a modem carrier for bytes.
 
 Pipeline overview:
@@ -191,12 +192,12 @@ PYTHONPATH=src python3 -m holo --olonomic src/flower.jpg --blocks 12 --quality 3
 PYTHONPATH=src python3 -m holo tnc-rx --input rx_noise.wav --uri holo://noise/demo --out rx_noise.holo --baud 1200 \
   && PYTHONPATH=src python3 -m holo rx_noise.holo --output rx.png --use-recovery --prefer-gain
 
-# Clean link (VHF/UHF/10 GHz): encode -> tnc-tx
+# Clean link (VHF/UHF/SHF): encode -> tnc-tx
 PYTHONPATH=src python3 -m holo --olonomic src/flower.jpg --blocks 12 --quality 30 \
   && PYTHONPATH=src python3 -m holo tnc-tx --chunk-dir src/flower.jpg.holo --uri holo://clean/demo --out tx_clean.wav \
   --max-payload 512 --gap-ms 15 --prefer-gain --fs 9600 --baud 1200
 
-# Clean link (VHF/UHF/10 GHz): tnc-rx -> decode
+# Clean link (VHF/UHF/SHF): tnc-rx -> decode
 PYTHONPATH=src python3 -m holo tnc-rx --input rx_clean.wav --uri holo://clean/demo --out rx_clean.holo --baud 1200 \
   && PYTHONPATH=src python3 -m holo rx_clean.holo --output rx.png --prefer-gain
 ```
@@ -215,7 +216,7 @@ Suggested parameter table (AFSK, conservative defaults):
 | Link quality | --baud | --fs | --max-payload | --gap-ms | --include-recovery | Compression/AGC |
 | --- | --- | --- | --- | --- | --- | --- |
 | Noisy/variable (HF) | 1200 | 9600 | 320 | 40 | yes | OFF |
-| Clean link (VHF/UHF/10 GHz) | 1200 | 9600 | 512 | 15 | optional | OFF |
+| Clean link (VHF/UHF/SHF) | 1200 | 9600 | 512 | 15 | optional | OFF |
 
 Notes:
 - Use line-in/IF audio from the rig or SDR when possible; avoid acoustic coupling.

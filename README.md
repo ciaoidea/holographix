@@ -9,10 +9,10 @@ HolographiX is a field-first representation layer: it turns data into interchang
 
 HolographiX separates representation from transport. The codec/math defines how evidence is spread across chunks; the same chunks can live on UDP meshes, filesystems, object stores, delay-tolerant links, or flow directly into inference pipelines. Networks are one use-case; the core primitive is a stateless best‑so‑far field.
 
-AI fit: best‑so‑far fields enable anytime inference — models can run on partial reconstructions (or on field tokens) and improve continuously as more evidence arrives.
+AI fit: best‑so‑far fields enable anytime inference — models can run on partial reconstructions (or on field tokens) and improve continuously as more evidence arrives. Operational loop: **receive chunks → decode best‑so‑far → run model → repeat** (e.g., call a VLM with `max_chunks=k`, then re‑decode with more chunks and re‑query).
 
 - **Coarse + residual**: a tiny coarse thumbnail/envelope plus a distributed residual.
-- **Golden interleaving**: residual samples are permuted so each chunk touches the whole signal.
+- **MatriX (golden interleave)**: deterministic golden-ratio permutation so every chunk touches the whole signal.
 - **Stateless, deterministic**: no session/state needed; chunks are interchangeable.
 - **New in 3.0 (olonomic v3)**: residuals live in local wave bases (DCT for images, STFT for audio), drastically shrinking chunk sizes while keeping graceful degradation.
 
@@ -40,6 +40,7 @@ Encode / decode olonomic (v3):
 python3 -m holo --olonomic src/flower.jpg --blocks 16 --quality 40  # DCT residual, wave-based loss (smaller than v2)
 python3 -m holo src/flower.jpg.holo --output out.png
 ```
+Chunk sizing: use either `TARGET_KB` (positional) or `--blocks` (explicit count); if both are given, `--blocks` wins.
 Audio:
 ```bash
 python3 -m holo /path/to/track.wav 16             # v2
@@ -87,6 +88,8 @@ decode_audio_holo_dir("track.holo", "track_recon.wav")
 - **Images**: residual = img − coarse_up → pad to block size → DCT‑II (ortho) per block/channel → JPEG‑style quant (quality 1‑100) → zigzag → int16 → golden permutation → zlib per chunk. Missing chunks zero coefficients; recon via dequant + IDCT + coarse.
 - **Audio**: residual = audio − coarse_up → STFT (sqrt-Hann, hop=n_fft/2 default) → scale by n_fft → per‑bin quant steps grow with freq (quality 1‑100) → int16 (Re/Im interleaved) → golden permutation → zlib per chunk. Recon via dequant, ISTFT overlap‑add, coarse + residual.
 - **Metadata**: packed inside coarse payload (PNG + OLOI_META for images; zlib coarse + OLOA_META for audio) so headers stay backward‑compatible.
+
+Field operations are first-class: decode partially at any time, heal to restore a clean distribution, stack exposures to raise SNR, and pack/extract multiple objects into one field.
 
 ## Repository map
 ```
@@ -137,7 +140,7 @@ PYTHONPATH=src python3 src/examples/pack_and_extract.py  # packs multiple object
 ```
 
 ## Results snapshot
-- `src/galaxy.jpg` @ block_count=16: v2 total ~1.69 MB, v3 (DCT) total ~0.35 MB with coherent single‑chunk recon.
+- `src/galaxy.jpg`, coarse-side=16, v3 command: `python3 -m holo --olonomic src/galaxy.jpg --blocks 16 --quality 40 --packet-bytes 0` → total ~0.35 MB (coherent single-chunk recon). Same settings v2 pixel residuals: ~1.69 MB. Visual quality comparable; v3 degrades as “missing waves”, not holes.
 
 <p align="center">
   <img width="1280"  alt="photon collector" src="https://github.com/user-attachments/assets/c2b939d1-8911-4381-8bd7-a93e29f5401c" /><br/>

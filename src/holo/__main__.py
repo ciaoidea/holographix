@@ -33,7 +33,7 @@ def _default_decode_output(in_dir: str, mode: str) -> str:
 def _parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         prog="python -m holo",
-        description="Holographix 3.0 holographic codec (v2 pixel residuals, v3 olonomic DCT/STFT): encode to .holo dirs, decode from .holo dirs.",
+        description="HolographiX 3.0 holographic codec (v2 pixel residuals, v3 olonomic DCT/STFT): encode to .holo dirs, decode from .holo dirs.",
     )
 
     p.add_argument(

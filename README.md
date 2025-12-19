@@ -64,6 +64,14 @@ python3 -m holo src/flower.jpg 1 --packet-bytes 1136 --coarse-side 16   # enable
 - `--blocks N` – set chunk count (default keeps coarse duplicated per chunk)
 - `--packet-bytes B` – set MTU budget (default 0 = no limit; increases chunk count when set)
 - `--coarse-side S` (images) / `--coarse-frames F` (audio) – coarse resolution
+- `--coarse-model downsample|latent_lowfreq|ae_latent` – coarse base model for v3
+- `--recovery rlnc --overhead 0.25` – add recovery chunks (systematic RLNC)
+- `--use-recovery` – use recovery chunks when decoding (auto if present)
+- `--prefer-gain` – when decoding with `--max-chunks`, choose best-K by score
+- `--write-uncertainty` – emit confidence map/curve next to the output
+- `--heal` / `--heal-fixed-point` – heal a .holo dir (one-step or fixed-point)
+- `--heal-out DIR` – output dir for healing (default: derived)
+- `--heal-target-kb N` – chunk size for healing output
 - `--stack dir1 dir2 ...` – stack multiple image .holo dirs (average recon)
 
 ## Python API highlights
@@ -82,6 +90,52 @@ decode_image_holo_dir("frame.holo", "frame_recon.png")   # auto-dispatch by vers
 
 encode_audio_olonomic_holo_dir("track.wav", "track.holo", block_count=12, n_fft=256)
 decode_audio_holo_dir("track.holo", "track_recon.wav")
+```
+
+## Advanced modes
+- **Recovery (RLNC)**: optional recovery chunks (`recovery_*.holo`) can reconstruct missing residual slices under heavy loss. Encode with `--recovery rlnc --overhead 0.25` and decode with `--use-recovery`.
+- **Coarse models**: v3 coarse is now pluggable (`--coarse-model downsample|latent_lowfreq|ae_latent`). `latent_lowfreq` keeps only low‑frequency DCT/STFT coefficients; `ae_latent` loads optional tiny weights from `.npz` if present.
+- **Uncertainty output**: decode with `--write-uncertainty` to produce `*_confidence.png` (images) or `*_confidence.npy` (audio) where 1.0 = fully observed.
+- **Chunk priority**: encoders write per‑chunk scores and `manifest.json` ordering. Use `--prefer-gain` for best‑K decode, and mesh sender priority flags to transmit high‑gain chunks first.
+- **Fixed‑point healing**: `Field.heal_fixed_point(...)` iterates healing until deltas stabilize, with drift guards for lossy v3.
+- **CLI healing**: use `--heal` or `--heal-fixed-point` on a `.holo` directory to re-encode the current best‑so‑far.
+
+## Update summary (latest)
+- **Recovery**: systematic RLNC (`recovery_*.holo`) + GF(256) solver, optional in v3 image/audio encode/decode; mesh can send recovery chunks.
+- **Coarse models**: downsample/latent_lowfreq/ae_latent interface wired into v3 metadata, with optional training script for AE weights.
+- **Uncertainty**: confidence maps/curves from decoder masks, new meta decode helpers, and honest healing to attenuate uncertain regions.
+- **Chunk priority**: score-aware manifest + prefer-gain decode and mesh sender ordering.
+- **Healing**: fixed-point healing loop with convergence metric and drift guards.
+
+## Updated plan (implementation status)
+- [x] Review codec/field/mesh flow and implement RLNC recovery chunk format + GF(256) helpers.
+- [x] Add coarse-model abstraction (downsample, latent_lowfreq, ae_latent) and store model name in v3 metadata.
+- [x] Implement uncertainty tracking + meta decode helpers; integrate priority selection and manifest generation.
+- [x] Add tests for recovery/uncertainty/prefer-gain/fixed-point healing; update README/examples/CLI.
+- [x] Run test suite and address issues.
+
+## CLI guide (new features)
+Recovery encode + decode:
+```bash
+PYTHONPATH=src python3 -m holo --olonomic src/flower.jpg --blocks 12 --recovery rlnc --overhead 0.5
+PYTHONPATH=src python3 -m holo src/flower.jpg.holo --use-recovery
+```
+Prefer-gain decode (best-K chunks):
+```bash
+PYTHONPATH=src python3 -m holo src/flower.jpg.holo --max-chunks 4 --prefer-gain
+```
+Uncertainty output:
+```bash
+PYTHONPATH=src python3 -m holo src/flower.jpg.holo --write-uncertainty
+```
+Healing (one-step and fixed-point):
+```bash
+PYTHONPATH=src python3 -m holo src/flower.jpg.holo --heal
+PYTHONPATH=src python3 -m holo src/flower.jpg.holo --heal-fixed-point --heal-iters 4 --heal-tol 1e-3
+```
+Mesh sender priority + recovery:
+```bash
+PYTHONPATH=src python3 src/examples/holo_mesh_sender.py --uri holo://demo/flower --chunk-dir src/flower.jpg.holo --peer 127.0.0.1:5000 --priority gain --send-recovery
 ```
 
 ## Olonomic v3 details (operational)

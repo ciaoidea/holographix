@@ -280,7 +280,9 @@ Notes:
   `PYTHONPATH=src python3 -m holo tnc-wav-fix --input rx.wav --out rx_pcm.wav`
 - If the file is badly corrupted, force raw decode:
   `PYTHONPATH=src python3 -m holo tnc-rx --input rx.wav --raw-s16le --raw-fs 48000 --out rx.holo`
- 
+
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/dbf50824-7a89-4258-af98-0ce1bda833aa" />
+
 
 ## HoloTV quickstart (experimental)
 Schedule chunks across a window of frames and feed them to a receiver:

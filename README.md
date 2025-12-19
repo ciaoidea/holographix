@@ -227,6 +227,7 @@ Notes:
 - `--max-payload` and `--gap-ms` trade throughput vs robustness; tune for your link budget.
 - If you run multiple streams, pass an explicit `--uri` on TX and RX to avoid mixing.
 - Size rule of thumb: `wav_bytes ~ payload_bytes * (16 * fs / baud)`; `--gap-ms` and `--preamble-len` add overhead. Lower `fs`, raise `baud`, or limit `--max-chunks` for smaller files.
+- Example: 600 KB payload at `fs=9600`, `baud=1200` gives ~600 * 128 = 76 MB before gaps/preamble; overhead can push this well past 100 MB.
 - `tnc-rx` defaults to best-effort PCM16 decode; disable with `--no-force-pcm16` if needed.
 - If you edited or trimmed a WAV and the header breaks, fix it with:
   `PYTHONPATH=src python3 -m holo tnc-wav-fix --input rx.wav --out rx_pcm.wav`

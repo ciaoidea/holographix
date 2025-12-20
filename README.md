@@ -79,6 +79,66 @@ python3 -m holo src/flower.jpg 1 --packet-bytes 1136 --coarse-side 16   # enable
 - `tnc-tx ... --fs 9600 --baud 1200 --max-chunks 4` – reduce WAV size for quick tests (size scales with `fs/baud`)
 - `tnc-wav-fix --input in.wav --out fixed.wav` – re-encode to PCM16 mono
 
+## Framework CLI map
+```
+Input (image / audio / file)
+        |
+        v
+python3 -m holo
+  - codec: encode/decode/heal/stack -> .holo chunk dirs
+        |
+        +--> python3 -m holo net ...
+        |      UDP framing + inventory/want control + mesh helpers
+        |
+        +--> python3 -m holo tnc-* ...
+               Audio modem (AFSK WAV) for radio/line links
+
+Note: holo://... URIs are hashed to content_id (blake2s) for transport/mesh addressing.
+```
+
+## CLI command table
+| Command | Description |
+| --- | --- |
+| `python3 -m holo` | Codec CLI: encode/decode/heal/stack; creates or consumes `.holo` chunk dirs. |
+| `python3 -m holo tnc-tx` | Encode `.holo` chunks to AFSK WAV for audio/radio links. |
+| `python3 -m holo tnc-rx` | Decode AFSK WAV back into `.holo` chunk dirs. |
+| `python3 -m holo tnc-wav-fix` | Normalize WAV/raw PCM to PCM16 mono. |
+| `python3 -m holo net` | Net/transport CLI group (see subcommands below). |
+| `python3 -m holo net constants` | Print transport constants (MAGIC, CONTROL_MAGIC, etc.). |
+| `python3 -m holo net norm-uri` | Normalize a `holo://` URI (trim). |
+| `python3 -m holo net id-bytes` | `content_id` bytes from URI (hex/base64/raw). |
+| `python3 -m holo net id-hex` | `content_id` hex from URI. |
+| `python3 -m holo net stream-id` | `content_id` bytes from stream id + frame index. |
+| `python3 -m holo net iter-datagrams` | Split a chunk into transport datagrams. |
+| `python3 -m holo net send-chunk` | Send a chunk as UDP datagrams. |
+| `python3 -m holo net encode-inventory` | Build control-plane INVENTORY datagram. |
+| `python3 -m holo net encode-want` | Build control-plane WANT datagram. |
+| `python3 -m holo net parse-control` | Parse INVENTORY/WANT control datagram. |
+| `python3 -m holo net assemble` | Reassemble datagrams into complete chunks. |
+| `python3 -m holo net assembler-expire` | Force expiration of partial reassembly state. |
+| `python3 -m holo net mesh-broadcast` | `MeshNode.broadcast_chunk_dir` to peers. |
+| `python3 -m holo net mesh-recv` | Loop `MeshNode.recv_once` and store chunks. |
+| `python3 -m holo net mesh-join-mcast` | Join multicast groups (IPv4) on a socket. |
+| `python3 -m holo net mesh-inventory` | `MeshNode.send_inventory` to peers. |
+| `python3 -m holo net mesh-chunk-id` | Extract chunk id from filename. |
+| `python3 -m holo net mesh-recovery-id` | Extract recovery id from filename. |
+| `python3 -m holo net mesh-order-by-gain` | Order chunk paths by gain metadata. |
+| `python3 -m holo net mesh-local-chunk-ids` | List local chunk ids for a content id. |
+| `python3 -m holo net mesh-handle-inventory` | Handle INVENTORY and emit WANTs. |
+| `python3 -m holo net mesh-handle-want` | Handle WANT and send requested chunks. |
+| `python3 -m holo net mesh-sendto` | Send raw datagram bytes to a peer. |
+
+## CLI help and navigation
+Use the built-in help flags to discover options and subcommands:
+```bash
+python3 -m holo --help
+python3 -m holo net --help
+python3 -m holo net <command> --help
+python3 -m holo tnc-tx --help
+python3 -m holo tnc-rx --help
+python3 -m holo tnc-wav-fix --help
+```
+
 ## Python API highlights
 ```python
 import holo

@@ -81,20 +81,34 @@ python3 -m holo src/flower.jpg 1 --packet-bytes 1136 --coarse-side 16   # enable
 
 ## Framework CLI map
 ```
-Input (image / audio / file)
-        |
-        v
-python3 -m holo
-  - codec: encode/decode/heal/stack -> .holo chunk dirs
-        |
-        +--> python3 -m holo net ...
-        |      UDP framing + inventory/want control + mesh helpers
-        |
-        +--> python3 -m holo tnc-* ...
-               Audio modem (AFSK WAV) for radio/line links
-
-Note: holo://... URIs are hashed to content_id (blake2s) for transport/mesh addressing.
+      Input (image / audio / arbitrary file)
+                    |
+                    v
+         +--------------------------+
+         |  Holo Codec CLI          |
+         |  python3 -m holo         |
+         |  encode/decode/heal      |
+         +--------------------------+
+                    |
+              .holo chunk dir
+                    |
+      +-------------+------------------+
+      |                                |
+      v                                v
++----------------------+        +----------------------+
+| Holo Net CLI         |        | Holo TNC CLI          |
+| python3 -m holo net  |        | python3 -m holo tnc-* |
+| UDP framing + mesh   |        | AFSK WAV modem        |
++----------------------+        +----------------------+
+      |                                |
+      v                                v
+ UDP sockets                      Audio / Radio link
 ```
+
+Notes:
+- `holo://...` URIs map to `content_id = blake2s(holo://...)`.
+- Net layer handles datagrams + control-plane (inventory/want).
+- TNC layer turns datagrams into audio (and back).
 
 ## CLI command table
 | Command | Description |
@@ -104,29 +118,29 @@ Note: holo://... URIs are hashed to content_id (blake2s) for transport/mesh addr
 | `python3 -m holo tnc-rx` | Decode AFSK WAV back into `.holo` chunk dirs. |
 | `python3 -m holo tnc-wav-fix` | Normalize WAV/raw PCM to PCM16 mono. |
 | `python3 -m holo net` | Net/transport CLI group (see subcommands below). |
-| `python3 -m holo net constants` | Print transport constants (MAGIC, CONTROL_MAGIC, etc.). |
-| `python3 -m holo net norm-uri` | Normalize a `holo://` URI (trim). |
-| `python3 -m holo net id-bytes` | `content_id` bytes from URI (hex/base64/raw). |
-| `python3 -m holo net id-hex` | `content_id` hex from URI. |
-| `python3 -m holo net stream-id` | `content_id` bytes from stream id + frame index. |
-| `python3 -m holo net iter-datagrams` | Split a chunk into transport datagrams. |
-| `python3 -m holo net send-chunk` | Send a chunk as UDP datagrams. |
-| `python3 -m holo net encode-inventory` | Build control-plane INVENTORY datagram. |
-| `python3 -m holo net encode-want` | Build control-plane WANT datagram. |
-| `python3 -m holo net parse-control` | Parse INVENTORY/WANT control datagram. |
-| `python3 -m holo net assemble` | Reassemble datagrams into complete chunks. |
-| `python3 -m holo net assembler-expire` | Force expiration of partial reassembly state. |
-| `python3 -m holo net mesh-broadcast` | `MeshNode.broadcast_chunk_dir` to peers. |
-| `python3 -m holo net mesh-recv` | Loop `MeshNode.recv_once` and store chunks. |
-| `python3 -m holo net mesh-join-mcast` | Join multicast groups (IPv4) on a socket. |
-| `python3 -m holo net mesh-inventory` | `MeshNode.send_inventory` to peers. |
-| `python3 -m holo net mesh-chunk-id` | Extract chunk id from filename. |
-| `python3 -m holo net mesh-recovery-id` | Extract recovery id from filename. |
-| `python3 -m holo net mesh-order-by-gain` | Order chunk paths by gain metadata. |
-| `python3 -m holo net mesh-local-chunk-ids` | List local chunk ids for a content id. |
-| `python3 -m holo net mesh-handle-inventory` | Handle INVENTORY and emit WANTs. |
-| `python3 -m holo net mesh-handle-want` | Handle WANT and send requested chunks. |
-| `python3 -m holo net mesh-sendto` | Send raw datagram bytes to a peer. |
+| `python3 -m holo net`<br>`constants` | Print transport constants (MAGIC, CONTROL_MAGIC, etc.). |
+| `python3 -m holo net`<br>`norm-uri` | Normalize a `holo://` URI (trim). |
+| `python3 -m holo net`<br>`id-bytes` | `content_id` bytes from URI (hex/base64/raw). |
+| `python3 -m holo net`<br>`id-hex` | `content_id` hex from URI. |
+| `python3 -m holo net`<br>`stream-id` | `content_id` bytes from stream id + frame index. |
+| `python3 -m holo net`<br>`iter-datagrams` | Split a chunk into transport datagrams. |
+| `python3 -m holo net`<br>`send-chunk` | Send a chunk as UDP datagrams. |
+| `python3 -m holo net`<br>`encode-inventory` | Build control-plane INVENTORY datagram. |
+| `python3 -m holo net`<br>`encode-want` | Build control-plane WANT datagram. |
+| `python3 -m holo net`<br>`parse-control` | Parse INVENTORY/WANT control datagram. |
+| `python3 -m holo net`<br>`assemble` | Reassemble datagrams into complete chunks. |
+| `python3 -m holo net`<br>`assembler-expire` | Force expiration of partial reassembly state. |
+| `python3 -m holo net`<br>`mesh-broadcast` | `MeshNode.broadcast_chunk_dir` to peers. |
+| `python3 -m holo net`<br>`mesh-recv` | Loop `MeshNode.recv_once` and store chunks. |
+| `python3 -m holo net`<br>`mesh-join-mcast` | Join multicast groups (IPv4) on a socket. |
+| `python3 -m holo net`<br>`mesh-inventory` | `MeshNode.send_inventory` to peers. |
+| `python3 -m holo net`<br>`mesh-chunk-id` | Extract chunk id from filename. |
+| `python3 -m holo net`<br>`mesh-recovery-id` | Extract recovery id from filename. |
+| `python3 -m holo net`<br>`mesh-order-by-gain` | Order chunk paths by gain metadata. |
+| `python3 -m holo net`<br>`mesh-local-chunk-ids` | List local chunk ids for a content id. |
+| `python3 -m holo net`<br>`mesh-handle-inventory` | Handle INVENTORY and emit WANTs. |
+| `python3 -m holo net`<br>`mesh-handle-want` | Handle WANT and send requested chunks. |
+| `python3 -m holo net`<br>`mesh-sendto` | Send raw datagram bytes to a peer. |
 
 ## CLI help and navigation
 Use the built-in help flags to discover options and subcommands:

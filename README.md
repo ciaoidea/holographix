@@ -234,7 +234,7 @@ Chunk priority: score-aware manifest + prefer-gain decode and mesh sender orderi
 
 Healing: fixed-point healing loop with convergence metric and drift guards.
 
-The local healing process is implemented as a deterministic self-consistency loop: we iteratively apply a repair operator until the field stabilizes (a practical fixed-point iteration). We cite Hamann (2025) as conceptual inspiration for fixed-point self-consistency loops; our healing convergence is an algorithmic property of the chosen operator, not a consequence of the topological derivation of physical constants.
+The local healing process is implemented as a deterministic self-consistency loop: we iteratively apply a repair operator until the field stabilizes (a practical fixed-point iteration). We cite Hamann (2025) as conceptual inspiration for fixed-point self-consistency loops; our healing convergence is an algorithmic property of the chosen operator.
 
 <details>
   <summary><b>Implementation status (plan checklist)</b></summary>

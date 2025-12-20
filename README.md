@@ -32,7 +32,7 @@ The system is designed so that x_hat(S) is coherent for every non‑empty S, and
 
 This “any subset works” property is the generalized holography.
 
-## What people often misunderstand
+## Not Just an Encoder/Decoder: A Resilient Information Field Framework
 
 If you look at HolographiX as “a decoder that explodes information into a field and then transports it”, you miss the point. The “field” is not an intermediate representation: it is the *data structure*, the durable form of the information.
 

@@ -510,6 +510,10 @@ Transport‑agnostic: codec math is separate from mesh/UDP; use your own transpo
 - Rizzo, A. (2025). *HolographiX: From Fragile Streams to Information Fields*. [ISBN-13: 979-8278598534](https://www.amazon.com/dp/B0G6VQ3PWD)
 - Hamann, S. (2025). *The Topological Fixed Point Theory of Fundamental Constants*. DOI: [10.5281/zenodo.15779883](https://zenodo.org/doi/10.5281/zenodo.15779883)
 
+## License
+
+HolographiX is licensed under the GNU Affero General Public License v3.0 (AGPLv3). See `LICENSE`. Copyright (C) 2025 Alessandro Rizzo.
+
 <p align="center">
   © 2025 <a href="https://holographix.io">holographix.io</a>
 </p>

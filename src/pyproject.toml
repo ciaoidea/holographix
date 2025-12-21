@@ -7,6 +7,7 @@ name = "holographix"
 version = "0.0.0"
 description = "Holographic codec and UDP substrate for resilient media."
 readme = "README.md"
+license = { text = "AGPL-3.0-only" }
 requires-python = ">=3.9"
 authors = [{ name = "HolographiX contributors" }]
 dependencies = [

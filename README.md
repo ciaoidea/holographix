@@ -29,17 +29,28 @@ Read the full note (architecture + content routing + kernel/privacy dynamics):
 
 ## Abstract (operational contract)
 
-Let x be a source (image/audio/bytes). The encoder produces a set of chunks:
+Let x be a source signal (image/audio/bytes). The encoder produces N chunks:
 
-C = E(x) = {c_1, ..., c_N}
+  C = E(x) = {c_1, ..., c_N}
 
-For any subset S ⊆ C with S != ∅, the decoder returns:
+Let S be any finite multiset of received chunks with at least one valid chunk
+for the same content_id (duplicates and arbitrary order allowed). The decoder returns:
 
-x_hat(S) = D(S)
+  (x_hat, u) = D(S)
 
-The system is designed so that x_hat(S) is coherent for every non‑empty S, and quality improves smoothly with |S|. Missing evidence should express mainly as loss of detail (high‑frequency energy / precision), not as missing coordinates (holes in space/time).
+where x_hat is a full-support best-so-far reconstruction and u is an uncertainty map/curve.
 
-This “any subset works” property is the generalized holography.
+Define the reference reconstruction x* = D(C). For a distortion measure d(.,.),
+the system is designed so that, for increasing evidence, expected distortion decreases:
+
+  E[ d( D(S_k), x* ) ] is non-increasing in k
+
+where S_k contains k distinct informative chunks sampled from C (after validity checks).
+
+Missing evidence should manifest primarily as loss of detail (attenuated / missing high-frequency
+coefficients), not as missing coordinates (holes in space/time).
+
+This permutation-invariant, idempotent “any subset works” property is generalized holography.
 
 ## Not Just an Encoder/Decoder: A Resilient Information Field Framework
 

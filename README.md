@@ -486,7 +486,7 @@ Total ~0.35 MB (coherent single-chunk recon). Same settings v2 pixel residuals: 
 
 <p align="center">
   <img width="1280"  alt="drone in harsh weather" src="https://github.com/user-attachments/assets/e8c700f2-e5b6-424b-a848-a230294e8269" /><br/>
-  <em>Drone under harsh weather and challenging radio-link conditions.</em>
+  <em>UAV under harsh weather and degraded RF link: representative of low-SNR transport where quality (e.g., PSNR vs received chunks) improves smoothly as more chunks arrive.</em>
 </p>
 
 ## Design principles

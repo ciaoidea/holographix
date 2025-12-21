@@ -485,8 +485,8 @@ Total ~0.35 MB (coherent single-chunk recon). Same settings v2 pixel residuals: 
 </p>
 
 <p align="center">
-  <img width="1280"  alt="psnr curves" src="https://github.com/user-attachments/assets/e8c700f2-e5b6-424b-a848-a230294e8269" /><br/>
-  <em>PSNR vs received chunks: quality rises smoothly; variance stays low.</em>
+  <img width="1280"  alt="drone in harsh weather" src="https://github.com/user-attachments/assets/e8c700f2-e5b6-424b-a848-a230294e8269" /><br/>
+  <em>Drone under harsh weather and challenging radio-link conditions.</em>
 </p>
 
 ## Design principles

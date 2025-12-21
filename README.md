@@ -1,7 +1,7 @@
 # <img width="36" height="36" alt="HolographiX logo" src="https://github.com/user-attachments/assets/d7b26ef6-4645-4add-8ab6-717eb2fb12f2" /> HolographiX: Holographic Information MatriX
 ## V3.0 — Information fields for lossy, unordered worlds
 
-| <img width="20" height="20" alt="paper" src="https://github.com/user-attachments/assets/5cb70ee6-e6f7-4c5e-95b5-95d4e306c877" /> Paper [DOI: 10.5281/zenodo.18000522](https://doi.org/10.5281/zenodo.18000522) | <img width="20" height="20" alt="book" src="https://github.com/user-attachments/assets/264bb318-20b2-4982-a4d0-f7e5373985f0" /> Book: [ISBN-13: 979-8278598534](https://www.amazon.com/dp/B0G6VQ3PWD) | <img width="20" height="20" alt="github" src="https://github.com/user-attachments/assets/e939c63a-fa18-4363-abfe-ed1e6a2f5afc" /> GitHub: [source](https://github.com/ciaoidea/HolographiX) | <img width="20" height="20" alt="medium" src="https://github.com/user-attachments/assets/7ca2ea42-1fac-4fc0-a66f-cf5a5524fe1f" /> Medium [Article](https://ciaoidea.medium.com/the-best-so-far-economy-why-i-m-betting-on-fields-not-streams-093b176be1e8) | <img width="20" height="20" alt="podcast" src="https://github.com/user-attachments/assets/986237bf-7a4f-4b14-91c4-b144cd1b48d2" /> Podcast [2025 Dec 20th](https://github.com/user-attachments/assets/bb100f1e-5b36-4697-b352-a76c88c6f9db) |
+| <img width="20" height="20" alt="paper" src="https://github.com/user-attachments/assets/5cb70ee6-e6f7-4c5e-95b5-95d4e306c877" /> Paper [DOI: 10.5281/zenodo.18000522](https://doi.org/10.5281/zenodo.18000522) | <img width="20" height="20" alt="book" src="https://github.com/user-attachments/assets/264bb318-20b2-4982-a4d0-f7e5373985f0" /> Book: [ISBN-13: 979-8278598534](https://www.amazon.com/dp/B0G6VQ3PWD) | <img width="20" height="20" alt="github" src="https://github.com/user-attachments/assets/e939c63a-fa18-4363-abfe-ed1e6a2f5afc" /> GitHub: [source](https://github.com/ciaoidea/HolographiX) | Wiki: [docs](https://github.com/ciaoidea/HolographiX/wiki) | <img width="20" height="20" alt="medium" src="https://github.com/user-attachments/assets/7ca2ea42-1fac-4fc0-a66f-cf5a5524fe1f" /> Medium [Article](https://ciaoidea.medium.com/the-best-so-far-economy-why-i-m-betting-on-fields-not-streams-093b176be1e8) | <img width="20" height="20" alt="podcast" src="https://github.com/user-attachments/assets/986237bf-7a4f-4b14-91c4-b144cd1b48d2" /> Podcast [2025 Dec 20th](https://github.com/user-attachments/assets/bb100f1e-5b36-4697-b352-a76c88c6f9db) |
 
 <img width="1280" alt="holographix cover" src="https://github.com/user-attachments/assets/ae95ff1f-b15f-46f3-bf1c-bebab868b851" />
 
@@ -17,6 +17,15 @@ So the core claim is not “we can move data on UDP”. The claim is:
 The information artifact itself remains structurally interpretable under fragmentation, loss, reordering, duplication, delay, partial storage, partial computation.
 
 Networks, filesystems, radios, object stores, model pipelines are just different ways of circulating or sampling pieces of the same resilient field.
+
+## From `http://` to `holo://`
+
+The classical Internet is host‑centric: DNS resolves a name to a host, HTTP pulls a byte stream from that place, and reliability is mostly a property of the channel.
+
+HolographiX is content‑centric: `holo://...` is a cue that opens a local attractor (a session). The network delivers evidence chunks from anywhere (cache, mesh peers, gateways), in any order, and the object reconstructs progressively as uncertainty collapses into a coherent best‑so‑far field.
+
+Read the full note (architecture + content routing + kernel/privacy dynamics):
+**[From Internet to HolographiX](docs/vision/from-internet-to-holo.md)**
 
 ## Abstract (operational contract)
 
@@ -70,7 +79,7 @@ pip install -e ./src          # install holo and deps (numpy, pillow)
 
 ## Quick start
 
-Note: `.holo` output directories (like `src/flower.jpg.holo/`) are generated locally and are not committed to the repo. Run the encode step before any example that reads `src/flower.jpg.holo`.
+Note: `.holo` output directories (like `src/flower.jpg.holo/`) are generated locally and are not committed to the repository. Run the encode step before any example that reads `src/flower.jpg.holo`.
 
 Encode / decode an image:
 
@@ -123,7 +132,7 @@ holo.tv      -> multi-frame scheduling (HoloTV windows)
 
 ## CLI cheat‑sheet (core)
 
-- `python3 -m holo INPUT [TARGET_KB]` – encode file to `INPUT.holo`
+- `python3 -m holo INPUT [TARGET_KB]` – encode a file to `INPUT.holo`
 - `python3 -m holo INPUT.holo [--max-chunks K]` – decode using up to K chunks (auto-detects v2/v3)
 - `--olonomic` – use version 3 (DCT/STFT residuals); pair with `--quality Q`
 - `--blocks N` – set chunk count (default keeps coarse duplicated per chunk)
@@ -171,7 +180,7 @@ holo.tv      -> multi-frame scheduling (HoloTV windows)
 
 Notes:
 - `holo://...` URIs map to `content_id = blake2s(holo://...)`.
-- Net layer handles datagrams + control-plane (inventory/want).
+- Net layer handles datagrams and the control plane (inventory/want).
 - TNC layer turns datagrams into audio (and back).
 
 ## CLI help and navigation
@@ -210,7 +219,7 @@ Recovery (RLNC): optional recovery chunks (`recovery_*.holo`) can reconstruct mi
 
 Coarse models: v3 coarse is pluggable (`--coarse-model downsample|latent_lowfreq|ae_latent`). `latent_lowfreq` keeps only low‑frequency DCT/STFT coefficients; `ae_latent` loads optional tiny weights from `.npz` if present.
 
-Uncertainty output: decode with `--write-uncertainty` to produce `*_confidence.png` (images) or `*_confidence.npy` (audio) where 1.0 = fully observed.
+Uncertainty output: decode with `--write-uncertainty` to produce `*_confidence.png` (images) or `*_confidence.npy` (audio) where 1.0 means fully observed.
 
 Chunk priority: encoders write per‑chunk scores and `manifest.json` ordering. Use `--prefer-gain` for best‑K decode, and mesh sender priority flags to transmit high‑gain chunks first.
 
@@ -226,15 +235,15 @@ HoloTV (experimental): `holo.tv` schedules multi-frame windows and demuxes datag
 
 Recovery: systematic RLNC (`recovery_*.holo`) + GF(256) solver, optional in v3 image/audio encode/decode; mesh can send recovery chunks.
 
-Coarse models: downsample/latent_lowfreq/ae_latent interface wired into v3 metadata, with optional training script for AE weights.
+Coarse models: downsample/latent_lowfreq/ae_latent interface wired into v3 metadata, with an optional training script for AE weights.
 
-Uncertainty: confidence maps/curves from decoder masks, new meta decode helpers, and honest healing to attenuate uncertain regions.
+Uncertainty: confidence maps/curves from decoder masks, new meta decode helpers, plus honest healing to attenuate uncertain regions.
 
-Chunk priority: score-aware manifest + prefer-gain decode and mesh sender ordering.
+Chunk priority: score-aware manifest + prefer-gain decode and mesh sender ordering support.
 
 Healing: fixed-point healing loop with convergence metric and drift guards.
 
-The local healing process is implemented as a deterministic self-consistency loop: we iteratively apply a repair operator until the field stabilizes (a practical fixed-point iteration). (Ref. Hamann, S. (2025). From topology to dynamics: The order behind α and the natural constants, v1.0.6 (01 Sep 2025), §9.1 — used here as conceptual inspiration for fixed-point self-consistency loops.)
+The local healing process uses a deterministic self-consistency loop: we iteratively apply a repair operator until the field stabilizes (a practical fixed-point iteration). (Ref. Hamann, S. (2025). From topology to dynamics: The order behind α and the natural constants, v1.0.6 (01 Sep 2025), §9.1 — used here as conceptual inspiration for fixed-point self-consistency loops.)
 
 <details>
   <summary><b>Implementation status (plan checklist)</b></summary>
@@ -300,7 +309,7 @@ assert decoded == [payload]
 
 ## Ham radio transport (HF/VHF/UHF/SHF)
 
-Holo does not turn images into audio content. The audio you transmit is only a modem carrier for bytes.
+HolographiX does not turn images into audio content. The audio you transmit is only a modem carrier for bytes.
 WAV size is dominated by AFSK bitrate (~payload_bytes * 16 * fs / baud). To shrink WAVs, raise `--baud` or lower `--fs`,
 and optionally reduce payload size with v3 (`--olonomic`, lower `--quality` / `--overhead`).
 
@@ -371,7 +380,7 @@ Notes:
 - `--max-payload` and `--gap-ms` trade throughput vs robustness; tune for your link budget.
 - If you run multiple streams, pass an explicit `--uri` on TX and RX to avoid mixing.
 - Size rule of thumb: `wav_bytes ~ payload_bytes * (16 * fs / baud)`; `--gap-ms` and `--preamble-len` add overhead.
-- Example: 600 KB payload at `fs=9600`, `baud=1200` gives ~600 * 128 = 76 MB before gaps/preamble; overhead can push this well past 100 MB.
+- Example: 600 KB payload at `fs=9600`, `baud=1200` gives ~600 * 128 = 76 MB before gaps and preamble; overhead can push this well past 100 MB.
 - `tnc-rx` defaults to best-effort PCM16 decode; disable with `--no-force-pcm16` if needed.
 - If you edited or trimmed a WAV and the header breaks, fix it with:
   `PYTHONPATH=src python3 -m holo tnc-wav-fix --input rx.wav --out rx_pcm.wav`
@@ -444,7 +453,7 @@ src/holo/                  core library
 src/examples/              runnable demos (encode/decode, mesh_loopback, heal, pack/extract, benchmarks)
 src/tests/                 unit tests (round-trip, recovery, tnc, tv, healing)
 src/codec_simulation/      React/Vite control deck for codec exploration (optional)
-src/docs/                  Global Holographic Network guide (mesh/INV-WANT, DTN, examples for sensor fusion/AI/maps)
+docs/                      versioned documentation (specs, guides, kernel, vision)
 src/infra/                 containerlab lab + netem/benchmark configs
 src/systemd/               sample systemd units for mesh sender/receiver/node
 src/tools/                 offline tools (e.g., AE coarse training/export)
@@ -477,7 +486,7 @@ PYTHONPATH=src python3 src/examples/pack_and_extract.py
 
 `python3 -m holo --olonomic src/galaxy.jpg --blocks 16 --quality 40 --packet-bytes 0`
 
-Total ~0.35 MB (coherent single-chunk recon). Same settings v2 pixel residuals: ~1.69 MB. Visual quality comparable; v3 degrades as “missing waves”, not holes.
+Total ~0.35 MB (coherent single-chunk recon). Same settings for v2 pixel residuals: ~1.69 MB. Visual quality comparable; v3 degrades as “missing waves”, not holes.
 
 <p align="center">
   <img width="1280"  alt="photon collector" src="https://github.com/user-attachments/assets/c2b939d1-8911-4381-8bd7-a93e29f5401c" /><br/>

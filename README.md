@@ -436,6 +436,8 @@ Field operations are first-class: decode partially at any time, heal to restore 
 
 ## Repository map
 
+Canonical, versioned documentation lives in `docs/`. The Wiki is for drafts, notes, and roadmap items.
+
 ```
 README.md                  top-level overview (this file)
 src/pyproject.toml         packaging for editable install

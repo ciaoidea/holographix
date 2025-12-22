@@ -45,6 +45,7 @@ Typical usage at this level looks like:
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import glob
 import json
 import math
@@ -1240,6 +1241,409 @@ def _decode_image_holo_core_v3(
     return recon_u8
 
 
+# ===================== Olonomic v3 field-state helpers =====================
+
+@dataclass
+class _ImageFieldStateV3:
+    """Internal container for olonomic (version 3) image field state."""
+
+    h: int
+    w: int
+    c: int
+    block_count: int
+    block_size: int
+    pad_h: int
+    pad_w: int
+    quality: int
+    blocks_h: int
+    blocks_w: int
+    coarse_payload: bytes
+    coarse_up_arr: np.ndarray
+    coeff_vec: np.ndarray
+    coeff_mask: Optional[np.ndarray] = None
+    model_name: str = "downsample"
+
+
+def _load_image_field_v3(
+    in_dir: str,
+    *,
+    max_chunks: Optional[int] = None,
+    prefer_gain: bool = False,
+    use_recovery: Optional[bool] = None,
+    return_mask: bool = True,
+) -> _ImageFieldStateV3:
+    """Load an olonomic (v3) image field as coefficient-domain state."""
+    chunk_files = _select_chunk_files(in_dir, max_chunks=max_chunks, prefer_gain=prefer_gain)
+    if not chunk_files:
+        raise FileNotFoundError(f"No chunk_*.holo found in {in_dir}")
+
+    recovery_files = []
+    if use_recovery is not False:
+        recovery_files = sorted(glob.glob(os.path.join(in_dir, "recovery_*.holo")))
+    use_recovery_effective = bool(recovery_files) if use_recovery is None else bool(use_recovery)
+    collect_slices = use_recovery_effective
+    slice_bytes_by_block: dict[int, bytes] = {}
+    seen_blocks: set[int] = set()
+
+    h = w = c = None
+    block_count = None
+    block_size = None
+    pad_h = pad_w = None
+    quality = None
+    coarse_up_arr = None
+    coarse_payload_keep: Optional[bytes] = None
+    coeff_vec = None
+    coeff_mask = None
+    perm = None
+    blocks_h = blocks_w = None
+    model_name = "downsample"
+
+    for path in chunk_files:
+        try:
+            with open(path, "rb") as f:
+                data = f.read()
+        except OSError:
+            continue
+
+        try:
+            version, h_i, w_i, c_i, B_i, block_id, coarse_len, resid_len = _parse_image_header(data)
+        except ChunkFormatError:
+            continue
+
+        if version != VERSION_IMG_OLO:
+            continue
+        off = IMG_HEADER_SIZE
+        if off + coarse_len + resid_len > len(data):
+            continue
+        if B_i <= 0 or block_id < 0 or block_id >= B_i:
+            continue
+
+        coarse_payload = data[off: off + coarse_len]
+        off += coarse_len
+        resid_comp = data[off: off + resid_len]
+
+        if coeff_vec is None:
+            if len(coarse_payload) < OLOI_META.size:
+                continue
+            try:
+                magic, meta_ver, block_size_i, quality_i, flags, pad_h_i, pad_w_i, payload_len = OLOI_META.unpack_from(coarse_payload, 0)
+            except struct.error:
+                continue
+            if magic != OLOI_MAGIC:
+                continue
+            if block_size_i <= 0:
+                continue
+
+            if meta_ver == 1:
+                model_name = "downsample"
+                header_size = OLOI_META.size
+                if payload_len > len(coarse_payload) - header_size:
+                    continue
+                payload_bytes = coarse_payload[header_size: header_size + payload_len]
+            elif meta_ver == 2:
+                if len(coarse_payload) < OLOI_META_V2.size:
+                    continue
+                try:
+                    (magic, meta_ver, block_size_i, quality_i, flags,
+                     pad_h_i, pad_w_i, payload_len, name_len) = OLOI_META_V2.unpack_from(coarse_payload, 0)
+                except struct.error:
+                    continue
+                if magic != OLOI_MAGIC:
+                    continue
+                name_len = int(name_len)
+                header_size = OLOI_META_V2.size
+                if name_len < 0 or name_len > len(coarse_payload) - header_size:
+                    continue
+                name_bytes = coarse_payload[header_size: header_size + name_len]
+                model_name = name_bytes.decode("ascii", errors="ignore").strip().lower() or "downsample"
+                payload_start = header_size + name_len
+                if payload_len > len(coarse_payload) - payload_start:
+                    continue
+                payload_bytes = coarse_payload[payload_start: payload_start + payload_len]
+            else:
+                continue
+
+            model = get_coarse_model(model_name, kind="image")
+            try:
+                coarse_up = model.decode(
+                    payload_bytes,
+                    target_shape=(int(h_i), int(w_i), int(c_i)),
+                    block_size=int(block_size_i),
+                    quality=int(quality_i),
+                )
+            except Exception:
+                continue
+
+            h, w, c = int(h_i), int(w_i), int(c_i)
+            block_count = int(B_i)
+            block_size = int(block_size_i)
+            pad_h = max(0, int(pad_h_i))
+            pad_w = max(0, int(pad_w_i))
+            quality = int(np.clip(quality_i, 1, 100))
+
+            coarse_up_arr = np.asarray(coarse_up, dtype=np.int16, order="C")
+            coarse_payload_keep = bytes(coarse_payload)
+            blocks_h = max(1, int(math.ceil((h + pad_h) / float(block_size))))
+            blocks_w = max(1, int(math.ceil((w + pad_w) / float(block_size))))
+            total_coeff = blocks_h * blocks_w * int(c) * (block_size * block_size)
+            coeff_vec = np.zeros(total_coeff, dtype=np.int16)
+            if return_mask:
+                coeff_mask = np.zeros(total_coeff, dtype=bool)
+
+            if block_count > 1:
+                perm = _golden_permutation(total_coeff)
+        else:
+            if (h_i, w_i, c_i, B_i) != (h, w, c, block_count):
+                continue
+
+        try:
+            vals_bytes = zlib.decompress(resid_comp)
+            vals = np.frombuffer(vals_bytes, dtype="<i2").astype(np.int16, copy=False)
+        except Exception:
+            continue
+
+        if coeff_vec is None:
+            continue
+
+        seen_blocks.add(int(block_id))
+        if collect_slices and int(block_id) not in slice_bytes_by_block:
+            slice_bytes_by_block[int(block_id)] = vals_bytes
+
+        _apply_residual_slice(
+            coeff_vec,
+            int(block_id),
+            int(block_count),
+            vals,
+            perm,
+            coeff_mask if return_mask else None,
+        )
+
+    if use_recovery_effective and recovery_files and coeff_vec is not None and block_count is not None:
+        missing = [bid for bid in range(int(block_count)) if bid not in seen_blocks]
+        if missing:
+            lengths, max_len = _residual_slice_lengths(int(coeff_vec.size), int(block_count), 2)
+            if max_len > 0:
+                rec_chunks = []
+                for path in recovery_files:
+                    try:
+                        with open(path, "rb") as f:
+                            data = f.read()
+                    except OSError:
+                        continue
+                    chunk = parse_recovery_chunk(data)
+                    if chunk is None:
+                        continue
+                    if chunk.base_kind != REC_KIND_IMAGE or chunk.base_codec_version != VERSION_IMG_OLO:
+                        continue
+                    if chunk.block_count != int(block_count):
+                        continue
+                    rec_chunks.append(chunk)
+
+                recovered = recover_missing_slices(
+                    block_count=int(block_count),
+                    missing_ids=missing,
+                    known_slices=slice_bytes_by_block,
+                    recovery_chunks=rec_chunks,
+                    slice_len=int(max_len),
+                )
+                if recovered:
+                    for block_id, payload in recovered.items():
+                        exp_len = lengths[int(block_id)] if int(block_id) < len(lengths) else 0
+                        if exp_len <= 0:
+                            continue
+                        vals = np.frombuffer(payload[:exp_len], dtype="<i2").astype(np.int16, copy=False)
+                        _apply_residual_slice(
+                            coeff_vec,
+                            int(block_id),
+                            int(block_count),
+                            vals,
+                            perm,
+                            coeff_mask if return_mask else None,
+                        )
+                        seen_blocks.add(int(block_id))
+
+    if coeff_vec is None or coarse_up_arr is None or coarse_payload_keep is None or block_size is None or blocks_h is None or blocks_w is None or quality is None:
+        raise ValueError(f"No decodable image v3 chunks found in {in_dir}")
+
+    return _ImageFieldStateV3(
+        h=int(h),
+        w=int(w),
+        c=int(c),
+        block_count=int(block_count),
+        block_size=int(block_size),
+        pad_h=int(pad_h),
+        pad_w=int(pad_w),
+        quality=int(quality),
+        blocks_h=int(blocks_h),
+        blocks_w=int(blocks_w),
+        coarse_payload=coarse_payload_keep,
+        coarse_up_arr=coarse_up_arr,
+        coeff_vec=coeff_vec,
+        coeff_mask=coeff_mask if return_mask else None,
+        model_name=str(model_name),
+    )
+
+
+def _confidence_map_image_v3(state: _ImageFieldStateV3) -> np.ndarray:
+    """Compute a block-level confidence map from a v3 image coefficient mask."""
+    if state.coeff_mask is None:
+        return np.ones((int(state.blocks_h), int(state.blocks_w)), dtype=np.float32)
+
+    block_size = int(state.block_size)
+    blocks_h = int(state.blocks_h)
+    blocks_w = int(state.blocks_w)
+    blocks_per_channel = blocks_h * blocks_w
+    coeff_per_block = block_size * block_size
+
+    total_expected = coeff_per_block * blocks_per_channel * int(state.c)
+    mask_use = state.coeff_mask[:total_expected].reshape(int(state.c), blocks_per_channel, coeff_per_block)
+
+    zigzag = _zigzag_indices(block_size)
+    zz_r, zz_c = zigzag[:, 0], zigzag[:, 1]
+    quant = _scaled_quant_table(block_size, int(state.quality))
+
+    weights = 1.0 / np.maximum(quant, 1e-6)
+    weight_flat = weights[zz_r, zz_c].reshape(-1).astype(np.float32)
+    weight_sum = float(np.sum(weight_flat)) if weight_flat.size > 0 else 1.0
+
+    conf_blocks = np.zeros(blocks_per_channel, dtype=np.float32)
+    for ch_idx in range(int(state.c)):
+        conf_blocks += np.sum(mask_use[ch_idx].astype(np.float32) * weight_flat[None, :], axis=1) / weight_sum
+    conf_blocks /= max(1.0, float(state.c))
+    return conf_blocks.reshape(blocks_h, blocks_w)
+
+
+def _render_image_field_v3(
+    state: _ImageFieldStateV3,
+    *,
+    coeff_vec: Optional[np.ndarray] = None,
+    coarse_up_arr: Optional[np.ndarray] = None,
+    return_mask: bool = False,
+) -> np.ndarray:
+    """Render an RGB uint8 image from a v3 coefficient-domain field state."""
+    coeff_src = state.coeff_vec if coeff_vec is None else np.asarray(coeff_vec)
+    coarse_src = state.coarse_up_arr if coarse_up_arr is None else np.asarray(coarse_up_arr)
+
+    h, w, c = int(state.h), int(state.w), int(state.c)
+    block_size = int(state.block_size)
+    blocks_h = int(state.blocks_h)
+    blocks_w = int(state.blocks_w)
+    quality = int(state.quality)
+
+    zigzag = _zigzag_indices(block_size)
+    zz_r, zz_c = zigzag[:, 0], zigzag[:, 1]
+    quant = _scaled_quant_table(block_size, quality)
+    T = _get_dct_matrix(block_size)
+
+    padded_h = blocks_h * block_size
+    padded_w = blocks_w * block_size
+    residual_full = np.zeros((padded_h, padded_w, c), dtype=np.float32)
+
+    coeff_per_block = block_size * block_size
+    blocks_per_channel = blocks_h * blocks_w
+    total_expected = coeff_per_block * blocks_per_channel * c
+    coeff_use = np.asarray(coeff_src[:total_expected], dtype=np.float32, order="C")
+    coeff_use = coeff_use.reshape(c, blocks_per_channel, coeff_per_block)
+
+    for ch_idx in range(c):
+        ch_blocks = coeff_use[ch_idx]
+        for bi in range(blocks_per_channel):
+            by = bi // blocks_w
+            bx = bi - by * blocks_w
+            block_flat = ch_blocks[bi]
+            coeff_block = np.zeros((block_size, block_size), dtype=np.float32)
+            coeff_block[zz_r, zz_c] = block_flat
+            coeff_block *= quant
+            spatial = T.T @ coeff_block @ T
+            y0 = by * block_size
+            x0 = bx * block_size
+            residual_full[y0: y0 + block_size, x0: x0 + block_size, ch_idx] = spatial
+
+    residual_crop = residual_full[:h, :w, :]
+    recon = coarse_src.astype(np.float32) + residual_crop
+    recon_u8 = np.clip(recon, 0, 255).astype(np.uint8)
+
+    if return_mask:
+        return recon_u8, _confidence_map_image_v3(state)
+    return recon_u8
+
+
+def _write_image_field_v3(
+    state: _ImageFieldStateV3,
+    out_dir: str,
+    *,
+    target_chunk_kb: Optional[int] = None,
+    max_chunk_bytes: Optional[int] = None,
+    block_count: Optional[int] = None,
+) -> None:
+    """Write a new v3 `.holo` directory from an existing v3 field state."""
+    coeff = np.asarray(state.coeff_vec)
+    if coeff.dtype != np.int16:
+        coeff = np.rint(coeff).astype(np.int64)
+        coeff = np.clip(coeff, -32768, 32767).astype(np.int16)
+
+    residual_bytes_total = int(coeff.size) * 2
+    coarse_payload = bytes(state.coarse_payload)
+
+    B = int(block_count) if block_count is not None else int(state.block_count)
+    if max_chunk_bytes is not None:
+        B = _select_block_count_bytes(residual_bytes_total, len(coarse_payload), int(max_chunk_bytes))
+    elif target_chunk_kb is not None:
+        B = _select_block_count(residual_bytes_total, len(coarse_payload), int(target_chunk_kb))
+
+    B = max(1, min(int(B), max(1, coeff.size)))
+
+    os.makedirs(out_dir, exist_ok=True)
+    _wipe_old_chunks(out_dir)
+
+    perm = _golden_permutation(coeff.size) if B > 1 else None
+    entries: list[dict] = []
+
+    for block_id in range(B):
+        if perm is None or B == 1:
+            vals = coeff[block_id::B]
+        else:
+            idx = perm[block_id::B]
+            vals = coeff[idx]
+
+        vals_bytes = vals.astype("<i2", copy=False).tobytes()
+        resid_comp = zlib.compress(vals_bytes, level=9)
+
+        header = bytearray()
+        header += MAGIC_IMG
+        header += struct.pack("B", int(VERSION_IMG_OLO))
+        header += struct.pack(">I", int(state.h))
+        header += struct.pack(">I", int(state.w))
+        header += struct.pack("B", int(state.c))
+        header += struct.pack(">I", int(B))
+        header += struct.pack(">I", int(block_id))
+        header += struct.pack(">I", int(len(coarse_payload)))
+        header += struct.pack(">I", int(len(resid_comp)))
+
+        chunk_path = os.path.join(out_dir, f"chunk_{block_id:04d}.holo")
+        with open(chunk_path, "wb") as f:
+            f.write(bytes(header) + coarse_payload + resid_comp)
+
+        score = float(np.sum(vals.astype(np.float64) ** 2))
+        meta_path = chunk_path + ".meta"
+        try:
+            with open(meta_path, "w", encoding="ascii") as mf:
+                mf.write(f"{score:.6f}")
+        except OSError:
+            pass
+        entries.append({"file": os.path.basename(chunk_path), "block_id": int(block_id), "score": float(score)})
+
+    if entries:
+        entries.sort(key=lambda e: float(e.get("score", 0.0)), reverse=True)
+        _write_chunk_manifest(
+            out_dir,
+            base_kind="image",
+            codec_version=int(VERSION_IMG_OLO),
+            block_count=int(B),
+            entries=entries,
+        )
+
+
 def _decode_image_holo_core(
     in_dir: str,
     *,
@@ -1370,39 +1774,85 @@ def stack_image_holo_dirs(
     """
     Stack multiple holographic image directories to improve SNR over time.
 
-    This function implements a simple "photon collector" style behavior:
-    several `.holo` directories that encode the same scene (for example,
-    repeated noisy captures of a faint object) are decoded, converted to
-    float32, summed and averaged pixel-wise.
-
-    The result is an image with the same mean brightness but reduced
-    uncorrelated noise, exactly as in classical exposure stacking in
-    astrophotography.
-
-    Parameters
-    ----------
-    in_dirs : sequence of str
-        A list of `.holo` directories that should all decode to images with
-        the same geometry (H, W, 3). Incompatible directories are skipped.
-    output_path : str
-        Path where the stacked RGB uint8 image will be written.
-    max_chunks : int, optional
-        Upper bound on chunks used from each directory. This lets you simulate
-        stacking under partial coverage, e.g. limited chunks per time window.
-
-    Example
-    -------
-    Stack three holographic exposures of the same scene:
-
-        stack_image_holo_dirs(
-            ["t0.png.holo", "t1.png.holo", "t2.png.holo"],
-            "frame_stacked.png",
-        )
-
-    This is a purely phenotypic operation: it works on reconstructed images,
-    not on raw chunks. If you want to merge chunks into a new .holo field,
-    that should be done at a higher layer (field/cortex/mesh).
+    For olonomic v3 fields, if all decodable inputs are v3, stacking happens
+    in coefficient space (genotypic stacking). Otherwise this falls back to a
+    pixel-domain average (phenotypic stacking).
     """
+    v3_states: list[_ImageFieldStateV3] = []
+    all_v3 = True
+
+    for d in in_dirs:
+        if not os.path.isdir(d):
+            continue
+        chunk_files = sorted(glob.glob(os.path.join(d, "chunk_*.holo")))
+        if not chunk_files:
+            continue
+        try:
+            with open(chunk_files[0], "rb") as f:
+                head = f.read(IMG_HEADER_SIZE)
+            version, *_ = _parse_image_header(head)
+        except Exception:
+            all_v3 = False
+            break
+        if version != VERSION_IMG_OLO:
+            all_v3 = False
+            break
+        try:
+            st = _load_image_field_v3(
+                d,
+                max_chunks=max_chunks,
+                prefer_gain=False,
+                use_recovery=None,
+                return_mask=True,
+            )
+            v3_states.append(st)
+        except Exception:
+            all_v3 = False
+            break
+
+    if all_v3 and v3_states:
+        ref = v3_states[0]
+        total_coeff = int(ref.coeff_vec.size)
+
+        coeff_sum = np.zeros(total_coeff, dtype=np.float64)
+        coeff_w = np.zeros(total_coeff, dtype=np.float64)
+        coarse_sum = None
+        coarse_count = 0
+
+        for st in v3_states:
+            if (st.h, st.w, st.c, st.block_size, st.blocks_h, st.blocks_w) != (
+                ref.h, ref.w, ref.c, ref.block_size, ref.blocks_h, ref.blocks_w
+            ):
+                continue
+            if int(st.coeff_vec.size) != total_coeff:
+                continue
+
+            coarse_f = np.asarray(st.coarse_up_arr, dtype=np.float32)
+            if coarse_sum is None:
+                coarse_sum = coarse_f.astype(np.float64)
+            else:
+                coarse_sum += coarse_f.astype(np.float64)
+            coarse_count += 1
+
+            if st.coeff_mask is None:
+                coeff_sum += st.coeff_vec.astype(np.float64)
+                coeff_w += 1.0
+            else:
+                m = st.coeff_mask.astype(bool)
+                coeff_sum[m] += st.coeff_vec[m].astype(np.float64)
+                coeff_w[m] += 1.0
+
+        if coarse_sum is None or coarse_count <= 0:
+            raise ValueError("No compatible v3 images found to stack")
+
+        coarse_avg = (coarse_sum / float(coarse_count)).astype(np.float32)
+        coeff_avg = np.zeros(total_coeff, dtype=np.float32)
+        np.divide(coeff_sum, np.maximum(coeff_w, 1.0), out=coeff_avg, where=coeff_w > 0.0)
+
+        stacked = _render_image_field_v3(ref, coeff_vec=coeff_avg, coarse_up_arr=coarse_avg)
+        save_image_rgb_u8(stacked, output_path)
+        return
+
     acc = None
     count = 0
 
@@ -1419,7 +1869,6 @@ def stack_image_holo_dirs(
             acc = img_f
         else:
             if acc.shape != img_f.shape:
-                # Skip directories with different geometry
                 continue
             acc += img_f
         count += 1
@@ -2240,6 +2689,400 @@ def _decode_audio_holo_core_v3(
         return recon, int(sr), conf_curve
 
     return recon, int(sr)
+
+
+# ===================== Olonomic v3 audio field-state helpers =====================
+
+@dataclass
+class _AudioFieldStateV3:
+    """Internal container for olonomic (version 3) audio field state."""
+
+    sr: int
+    ch: int
+    n_frames: int
+    block_count: int
+    coarse_len: int
+    n_fft: int
+    hop: int
+    quality: int
+    flags: int
+    coarse_payload: bytes
+    coarse_up: np.ndarray
+    coeff_vec: np.ndarray
+    coeff_mask: Optional[np.ndarray] = None
+    frames: int = 0
+    bins: int = 0
+    model_name: str = "downsample"
+
+
+def _load_audio_field_v3(
+    in_dir: str,
+    *,
+    max_chunks: Optional[int] = None,
+    prefer_gain: bool = False,
+    use_recovery: Optional[bool] = None,
+    return_mask: bool = True,
+) -> _AudioFieldStateV3:
+    """Load an olonomic (v3) audio field as coefficient-domain state."""
+    chunk_files = _select_chunk_files(in_dir, max_chunks=max_chunks, prefer_gain=prefer_gain)
+    if not chunk_files:
+        raise FileNotFoundError(f"No chunk_*.holo found in {in_dir}")
+
+    recovery_files = []
+    if use_recovery is not False:
+        recovery_files = sorted(glob.glob(os.path.join(in_dir, "recovery_*.holo")))
+    use_recovery_effective = bool(recovery_files) if use_recovery is None else bool(use_recovery)
+    collect_slices = use_recovery_effective
+    slice_bytes_by_block: dict[int, bytes] = {}
+    seen_blocks: set[int] = set()
+
+    sr = ch = n_frames = None
+    block_count = None
+    coarse_len = None
+    n_fft = None
+    hop = None
+    quality = None
+    flags_keep: Optional[int] = None
+    coarse_payload_keep: Optional[bytes] = None
+    coarse_up = None
+    coeff_vec = None
+    coeff_mask = None
+    perm = None
+    frames = None
+    bins = None
+    model_name = "downsample"
+
+    for path in chunk_files:
+        try:
+            with open(path, "rb") as f:
+                data = f.read()
+        except OSError:
+            continue
+
+        try:
+            (version, ch_i, sampwidth, flags, sr_i, n_frames_i,
+             B_i, block_id, coarse_len_i, coarse_size, resid_size) = _parse_audio_header(data)
+        except ChunkFormatError:
+            continue
+
+        if version != VERSION_AUD_OLO:
+            continue
+        if sampwidth != 2 or B_i <= 0 or block_id < 0 or block_id >= B_i:
+            continue
+
+        off = AUD_HEADER_SIZE
+        if off + coarse_size + resid_size > len(data):
+            continue
+
+        coarse_payload = data[off:off + coarse_size]
+        off += coarse_size
+        resid_comp = data[off:off + resid_size]
+
+        if coeff_vec is None:
+            if len(coarse_payload) < OLOA_META.size:
+                continue
+            try:
+                magic, meta_ver, quality_i, meta_flags, name_len, n_fft_i, hop_i = OLOA_META.unpack_from(coarse_payload, 0)
+            except struct.error:
+                continue
+            if magic != OLOA_MAGIC:
+                continue
+
+            payload_start = OLOA_META.size
+            if meta_ver == 1:
+                model_name = "downsample"
+            elif meta_ver == 2:
+                name_len = int(name_len)
+                if name_len < 0 or name_len > len(coarse_payload) - payload_start:
+                    continue
+                name_bytes = coarse_payload[payload_start: payload_start + name_len]
+                model_name = name_bytes.decode("ascii", errors="ignore").strip().lower() or "downsample"
+                payload_start += name_len
+            else:
+                continue
+            payload_bytes = coarse_payload[payload_start:]
+
+            sr = int(sr_i)
+            ch = int(ch_i)
+            n_frames = int(n_frames_i)
+            block_count = int(B_i)
+            coarse_len = int(coarse_len_i)
+            n_fft = int(n_fft_i)
+            hop = max(1, int(hop_i))
+            quality = int(quality_i)
+            flags_keep = int(flags)
+
+            if n_fft <= 0 or coarse_len <= 0:
+                coeff_vec = None
+                coarse_up = None
+                continue
+
+            model = get_coarse_model(model_name, kind="audio")
+            try:
+                coarse_up = model.decode(
+                    payload_bytes,
+                    target_shape=(int(n_frames), int(ch)),
+                    coarse_len=int(coarse_len),
+                    n_fft=int(n_fft),
+                    hop=int(hop),
+                    quality=int(quality),
+                )
+            except Exception:
+                coarse_up = None
+                continue
+            coarse_up = np.asarray(coarse_up, dtype=np.int16, order="C")
+
+            frames, _ = _stft_frame_count(n_frames, n_fft, hop)
+            bins = n_fft // 2 + 1
+            total_coeff = int(ch) * int(frames) * int(bins) * 2
+            coeff_vec = np.zeros(total_coeff, dtype=np.int16)
+            if return_mask:
+                coeff_mask = np.zeros(total_coeff, dtype=bool)
+
+            coarse_payload_keep = bytes(coarse_payload)
+
+            if block_count > 1:
+                perm = _golden_permutation(total_coeff)
+        else:
+            if (sr_i, ch_i, n_frames_i, B_i, coarse_len_i) != (sr, ch, n_frames, block_count, coarse_len):
+                continue
+
+        try:
+            vals_bytes = zlib.decompress(resid_comp)
+            vals = np.frombuffer(vals_bytes, dtype="<i2").astype(np.int16, copy=False)
+        except Exception:
+            continue
+
+        if coeff_vec is None:
+            continue
+
+        seen_blocks.add(int(block_id))
+        if collect_slices and int(block_id) not in slice_bytes_by_block:
+            slice_bytes_by_block[int(block_id)] = vals_bytes
+
+        _apply_residual_slice(
+            coeff_vec,
+            int(block_id),
+            int(block_count),
+            vals,
+            perm,
+            coeff_mask if return_mask else None,
+        )
+
+    if use_recovery_effective and recovery_files and coeff_vec is not None and block_count is not None:
+        missing = [bid for bid in range(int(block_count)) if bid not in seen_blocks]
+        if missing:
+            lengths, max_len = _residual_slice_lengths(int(coeff_vec.size), int(block_count), 2)
+            if max_len > 0:
+                rec_chunks = []
+                for path in recovery_files:
+                    try:
+                        with open(path, "rb") as f:
+                            data = f.read()
+                    except OSError:
+                        continue
+                    chunk = parse_recovery_chunk(data)
+                    if chunk is None:
+                        continue
+                    if chunk.base_kind != REC_KIND_AUDIO or chunk.base_codec_version != VERSION_AUD_OLO:
+                        continue
+                    if chunk.block_count != int(block_count):
+                        continue
+                    rec_chunks.append(chunk)
+
+                recovered = recover_missing_slices(
+                    block_count=int(block_count),
+                    missing_ids=missing,
+                    known_slices=slice_bytes_by_block,
+                    recovery_chunks=rec_chunks,
+                    slice_len=int(max_len),
+                )
+                if recovered:
+                    for block_id, payload in recovered.items():
+                        exp_len = lengths[int(block_id)] if int(block_id) < len(lengths) else 0
+                        if exp_len <= 0:
+                            continue
+                        vals = np.frombuffer(payload[:exp_len], dtype="<i2").astype(np.int16, copy=False)
+                        _apply_residual_slice(
+                            coeff_vec,
+                            int(block_id),
+                            int(block_count),
+                            vals,
+                            perm,
+                            coeff_mask if return_mask else None,
+                        )
+                        seen_blocks.add(int(block_id))
+
+    if coeff_vec is None or coarse_up is None or sr is None or ch is None or n_frames is None or coarse_len is None or n_fft is None or hop is None or quality is None or frames is None or bins is None or coarse_payload_keep is None or flags_keep is None:
+        raise ValueError(f"No decodable audio v3 chunks found in {in_dir}")
+
+    return _AudioFieldStateV3(
+        sr=int(sr),
+        ch=int(ch),
+        n_frames=int(n_frames),
+        block_count=int(block_count),
+        coarse_len=int(coarse_len),
+        n_fft=int(n_fft),
+        hop=int(hop),
+        quality=int(quality),
+        flags=int(flags_keep),
+        coarse_payload=coarse_payload_keep,
+        coarse_up=coarse_up,
+        coeff_vec=coeff_vec,
+        coeff_mask=coeff_mask if return_mask else None,
+        frames=int(frames),
+        bins=int(bins),
+        model_name=str(model_name),
+    )
+
+
+def _confidence_frames_audio_v3(state: _AudioFieldStateV3) -> np.ndarray:
+    """Return per-STFT-frame confidence values for a v3 audio field."""
+    if state.coeff_mask is None:
+        return np.ones(int(state.frames), dtype=np.float32)
+    frames = int(state.frames)
+    bins = int(state.bins)
+    ch = int(state.ch)
+    weights = 1.0 / (1.0 + np.arange(bins, dtype=np.float32))
+    weights = np.repeat(weights, 2)
+    weight_sum = float(np.sum(weights)) if weights.size > 0 else 1.0
+    mask_use = state.coeff_mask.reshape(ch, frames, bins * 2)
+    conf_frames = np.zeros(frames, dtype=np.float32)
+    for ch_idx in range(ch):
+        conf_frames += np.sum(mask_use[ch_idx].astype(np.float32) * weights[None, :], axis=1) / weight_sum
+    conf_frames /= max(1.0, float(ch))
+    return np.clip(conf_frames, 0.0, 1.0)
+
+
+def _confidence_curve_audio_v3(state: _AudioFieldStateV3) -> np.ndarray:
+    """Return per-sample confidence curve for a v3 audio field."""
+    conf_frames = _confidence_frames_audio_v3(state)
+    if int(state.frames) > 1:
+        frame_pos = np.linspace(0.0, float(state.n_frames - 1), int(state.frames))
+        return np.interp(np.arange(int(state.n_frames)), frame_pos, conf_frames).astype(np.float32)
+    return np.full(int(state.n_frames), float(conf_frames[0]), dtype=np.float32)
+
+
+def _render_audio_field_v3(
+    state: _AudioFieldStateV3,
+    *,
+    coeff_vec: Optional[np.ndarray] = None,
+    coarse_up: Optional[np.ndarray] = None,
+    return_mask: bool = False,
+):
+    """Render int16 PCM samples from a v3 audio field state."""
+    coeff_src = state.coeff_vec if coeff_vec is None else np.asarray(coeff_vec)
+    coarse_src = state.coarse_up if coarse_up is None else np.asarray(coarse_up)
+
+    ch = int(state.ch)
+    n_frames = int(state.n_frames)
+    frames = int(state.frames)
+    bins = int(state.bins)
+    n_fft = int(state.n_fft)
+    hop = int(state.hop)
+
+    total_expected = ch * frames * bins * 2
+    coeff_use = np.asarray(coeff_src[:total_expected], dtype=np.float32, order="C")
+    coeff_use = coeff_use.reshape(ch, frames, bins * 2)
+
+    window = np.sqrt(np.hanning(n_fft)).astype(np.float32)
+    steps = _audio_quant_steps(bins, int(state.quality), n_fft)
+
+    residual = np.zeros((n_frames, ch), dtype=np.float64)
+    for ch_idx in range(ch):
+        q_re = coeff_use[ch_idx, :, 0::2].astype(np.float32)
+        q_im = coeff_use[ch_idx, :, 1::2].astype(np.float32)
+        spec = (q_re + 1j * q_im) * steps[None, :]
+        spec *= float(n_fft)
+        res_ch = _istft_1d(spec, n_fft, hop, window, n_frames)
+        residual[:, ch_idx] = res_ch
+
+    recon = coarse_src.astype(np.int32) + np.round(residual).astype(np.int32)
+    recon = np.clip(recon, -32768, 32767).astype(np.int16)
+
+    if return_mask:
+        return recon, _confidence_curve_audio_v3(state)
+    return recon
+
+
+def _write_audio_field_v3(
+    state: _AudioFieldStateV3,
+    out_dir: str,
+    *,
+    target_chunk_kb: Optional[int] = None,
+    block_count: Optional[int] = None,
+) -> None:
+    """Write a new v3 audio `.holo` directory from an existing v3 field state."""
+    coeff = np.asarray(state.coeff_vec)
+    if coeff.dtype != np.int16:
+        coeff = np.rint(coeff).astype(np.int64)
+        coeff = np.clip(coeff, -32768, 32767).astype(np.int16)
+
+    residual_bytes_total = int(coeff.size) * 2
+    coarse_payload = bytes(state.coarse_payload)
+
+    B = int(block_count) if block_count is not None else int(state.block_count)
+    if target_chunk_kb is not None:
+        B = _select_block_count(residual_bytes_total, len(coarse_payload), int(target_chunk_kb))
+
+    B = max(1, min(int(B), max(1, coeff.size)))
+
+    os.makedirs(out_dir, exist_ok=True)
+    _wipe_old_chunks(out_dir)
+
+    perm = _golden_permutation(coeff.size) if B > 1 else None
+    chunks: list[tuple[float, int, bytes]] = []
+    entries: list[dict] = []
+
+    for block_id in range(B):
+        if perm is None or B == 1:
+            vals = coeff[block_id::B]
+        else:
+            idx = perm[block_id::B]
+            vals = coeff[idx]
+        vals_bytes = vals.astype("<i2", copy=False).tobytes()
+        resid_comp = zlib.compress(vals_bytes, level=9)
+        score = float(np.sum(vals.astype(np.float64) ** 2))
+        chunks.append((score, int(block_id), resid_comp))
+
+    chunks.sort(key=lambda x: x[0], reverse=True)
+
+    for out_idx, (score, block_id, resid_comp) in enumerate(chunks):
+        header = bytearray()
+        header += MAGIC_AUD
+        header += struct.pack("B", int(VERSION_AUD_OLO))
+        header += struct.pack("B", int(state.ch))
+        header += struct.pack("B", 2)
+        header += struct.pack("B", int(state.flags))
+        header += struct.pack(">I", int(state.sr))
+        header += struct.pack(">I", int(state.n_frames))
+        header += struct.pack(">I", int(B))
+        header += struct.pack(">I", int(block_id))
+        header += struct.pack(">I", int(state.coarse_len))
+        header += struct.pack(">I", int(len(coarse_payload)))
+        header += struct.pack(">I", int(len(resid_comp)))
+
+        chunk_path = os.path.join(out_dir, f"chunk_{out_idx:04d}.holo")
+        with open(chunk_path, "wb") as f:
+            f.write(bytes(header) + coarse_payload + resid_comp)
+
+        meta_path = chunk_path + ".meta"
+        try:
+            with open(meta_path, "w", encoding="ascii") as mf:
+                mf.write(f"{score:.6f}")
+        except OSError:
+            pass
+        entries.append({"file": os.path.basename(chunk_path), "block_id": int(block_id), "score": float(score)})
+
+    if entries:
+        entries.sort(key=lambda e: float(e.get("score", 0.0)), reverse=True)
+        _write_chunk_manifest(
+            out_dir,
+            base_kind="audio",
+            codec_version=int(VERSION_AUD_OLO),
+            block_count=int(B),
+            entries=entries,
+        )
 
 
 def _decode_audio_holo_core(

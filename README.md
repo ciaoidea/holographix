@@ -447,7 +447,7 @@ src/holo/                  core library
   __main__.py              CLI entry (codec + tnc-tx/tnc-rx)
   __init__.py              public API surface
   container.py             multi-object packing/unpacking
-  field.py                 field tracking + healing (fixed-point)
+  field.py                 field tracking + healing (fixed-point, v3 coefficient-domain)
   cortex/                  storage helpers (store.py backend)
   net/                     transport + mesh + content IDs
     transport.py           datagram framing/reassembly (HODT/HOCT)

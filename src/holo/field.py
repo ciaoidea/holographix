@@ -22,6 +22,16 @@ from .container import unpack_object_from_holo_dir
 from .codec import (
     MAGIC_AUD,
     MAGIC_IMG,
+    VERSION_AUD_OLO,
+    VERSION_IMG_OLO,
+    _confidence_frames_audio_v3,
+    _confidence_map_image_v3,
+    _load_audio_field_v3,
+    _load_image_field_v3,
+    _render_audio_field_v3,
+    _render_image_field_v3,
+    _write_audio_field_v3,
+    _write_image_field_v3,
     _write_wav_int16,
     decode_audio_holo_dir,
     decode_audio_holo_dir_meta,
@@ -194,36 +204,77 @@ class Field:
         mode = detect_mode_from_chunk_dir(self.chunk_dir)
         metrics: dict[str, float] = {}
         if mode == "audio":
-            audio, sr, conf = decode_audio_holo_dir_meta(
-                self.chunk_dir,
-                max_chunks=max_chunks,
-                prefer_gain=prefer_gain,
-                use_recovery=use_recovery,
-                return_sr=True,
-            )
-            if honest:
-                audio = self._attenuate_audio(audio, conf)
-                metrics["confidence_mean"] = float(np.mean(conf))
-            tmp = self._write_temp_wav(audio, int(sr))
-            try:
-                encode_audio_holo_dir(tmp, out_dir, target_chunk_kb=target_chunk_kb)
-            finally:
-                self._cleanup_temp(tmp)
+            if self._chunk_version() == VERSION_AUD_OLO:
+                state = _load_audio_field_v3(
+                    self.chunk_dir,
+                    max_chunks=max_chunks,
+                    prefer_gain=prefer_gain,
+                    use_recovery=use_recovery,
+                    return_mask=True,
+                )
+                coeff = state.coeff_vec.astype(np.float32, copy=True)
+                total_expected = int(state.ch) * int(state.frames) * int(state.bins) * 2
+                coeff_use = coeff[:total_expected].reshape(int(state.ch), int(state.frames), int(state.bins) * 2)
+                if honest:
+                    conf_frames = _confidence_frames_audio_v3(state)
+                    metrics["confidence_mean"] = float(np.mean(conf_frames))
+                    coeff_use *= conf_frames[None, :, None]
+                coeff = coeff_use.reshape(-1)
+                state.coeff_vec = coeff
+                _write_audio_field_v3(state, out_dir, target_chunk_kb=target_chunk_kb)
+            else:
+                audio, sr, conf = decode_audio_holo_dir_meta(
+                    self.chunk_dir,
+                    max_chunks=max_chunks,
+                    prefer_gain=prefer_gain,
+                    use_recovery=use_recovery,
+                    return_sr=True,
+                )
+                if honest:
+                    audio = self._attenuate_audio(audio, conf)
+                    metrics["confidence_mean"] = float(np.mean(conf))
+                tmp = self._write_temp_wav(audio, int(sr))
+                try:
+                    encode_audio_holo_dir(tmp, out_dir, target_chunk_kb=target_chunk_kb)
+                finally:
+                    self._cleanup_temp(tmp)
         else:
-            recon, conf = decode_image_holo_dir_meta(
-                self.chunk_dir,
-                max_chunks=max_chunks,
-                prefer_gain=prefer_gain,
-                use_recovery=use_recovery,
-            )
-            if honest:
-                recon = self._attenuate_image(recon, conf)
-                metrics["confidence_mean"] = float(np.mean(conf))
-            tmp = self._write_temp_image(recon)
-            try:
-                encode_image_holo_dir(tmp, out_dir, target_chunk_kb=target_chunk_kb)
-            finally:
-                self._cleanup_temp(tmp)
+            if self._chunk_version() == VERSION_IMG_OLO:
+                state = _load_image_field_v3(
+                    self.chunk_dir,
+                    max_chunks=max_chunks,
+                    prefer_gain=prefer_gain,
+                    use_recovery=use_recovery,
+                    return_mask=True,
+                )
+                coeff = state.coeff_vec.astype(np.float32, copy=True)
+                blocks_per_channel = int(state.blocks_h) * int(state.blocks_w)
+                coeff_per_block = int(state.block_size) * int(state.block_size)
+                total_expected = blocks_per_channel * coeff_per_block * int(state.c)
+                coeff_use = coeff[:total_expected].reshape(int(state.c), blocks_per_channel, coeff_per_block)
+                if honest:
+                    conf_blocks = _confidence_map_image_v3(state)
+                    metrics["confidence_mean"] = float(np.mean(conf_blocks))
+                    conf_flat = conf_blocks.reshape(blocks_per_channel).astype(np.float32, copy=False)
+                    coeff_use *= conf_flat[None, :, None]
+                coeff = coeff_use.reshape(-1)
+                state.coeff_vec = coeff
+                _write_image_field_v3(state, out_dir, target_chunk_kb=target_chunk_kb)
+            else:
+                recon, conf = decode_image_holo_dir_meta(
+                    self.chunk_dir,
+                    max_chunks=max_chunks,
+                    prefer_gain=prefer_gain,
+                    use_recovery=use_recovery,
+                )
+                if honest:
+                    recon = self._attenuate_image(recon, conf)
+                    metrics["confidence_mean"] = float(np.mean(conf))
+                tmp = self._write_temp_image(recon)
+                try:
+                    encode_image_holo_dir(tmp, out_dir, target_chunk_kb=target_chunk_kb)
+                finally:
+                    self._cleanup_temp(tmp)
         metrics["honest"] = float(bool(honest))
         if return_metrics:
             return out_dir, metrics
@@ -252,6 +303,11 @@ class Field:
         metric = str(metric).lower()
         max_iters = max(1, int(max_iters))
         tol = float(tol)
+        use_v3 = False
+        if mode == "audio" and self._chunk_version() == VERSION_AUD_OLO:
+            use_v3 = True
+        if mode == "image" and self._chunk_version() == VERSION_IMG_OLO:
+            use_v3 = True
 
         deltas: list[float] = []
         drift: list[float] = []
@@ -262,32 +318,71 @@ class Field:
 
         for i in range(max_iters):
             if mode == "audio":
-                audio, sr, conf = decode_audio_holo_dir_meta(
-                    current_dir,
-                    max_chunks=max_chunks,
-                    prefer_gain=prefer_gain,
-                    use_recovery=use_recovery,
-                    return_sr=True,
-                )
-                if honest:
-                    audio_use = self._attenuate_audio(audio, conf)
+                if use_v3:
+                    state = _load_audio_field_v3(
+                        current_dir,
+                        max_chunks=max_chunks,
+                        prefer_gain=prefer_gain,
+                        use_recovery=use_recovery,
+                        return_mask=True,
+                    )
+                    coeff = state.coeff_vec.astype(np.float32, copy=True)
+                    total_expected = int(state.ch) * int(state.frames) * int(state.bins) * 2
+                    coeff_use = coeff[:total_expected].reshape(int(state.ch), int(state.frames), int(state.bins) * 2)
+                    if honest:
+                        conf_frames = _confidence_frames_audio_v3(state)
+                        coeff_use *= conf_frames[None, :, None]
+                    coeff = coeff_use.reshape(-1)
+                    recon = _render_audio_field_v3(state, coeff_vec=coeff).astype(np.float32)
+                    max_val = 32767.0
                 else:
-                    audio_use = audio
-                recon = audio_use.astype(np.float32)
-                max_val = 32767.0
+                    audio, sr, conf = decode_audio_holo_dir_meta(
+                        current_dir,
+                        max_chunks=max_chunks,
+                        prefer_gain=prefer_gain,
+                        use_recovery=use_recovery,
+                        return_sr=True,
+                    )
+                    if honest:
+                        audio_use = self._attenuate_audio(audio, conf)
+                    else:
+                        audio_use = audio
+                    recon = audio_use.astype(np.float32)
+                    max_val = 32767.0
             else:
-                recon_img, conf = decode_image_holo_dir_meta(
-                    current_dir,
-                    max_chunks=max_chunks,
-                    prefer_gain=prefer_gain,
-                    use_recovery=use_recovery,
-                )
-                if honest:
-                    recon_use = self._attenuate_image(recon_img, conf)
+                if use_v3:
+                    state = _load_image_field_v3(
+                        current_dir,
+                        max_chunks=max_chunks,
+                        prefer_gain=prefer_gain,
+                        use_recovery=use_recovery,
+                        return_mask=True,
+                    )
+                    coeff = state.coeff_vec.astype(np.float32, copy=True)
+                    blocks_per_channel = int(state.blocks_h) * int(state.blocks_w)
+                    coeff_per_block = int(state.block_size) * int(state.block_size)
+                    total_expected = blocks_per_channel * coeff_per_block * int(state.c)
+                    coeff_use = coeff[:total_expected].reshape(int(state.c), blocks_per_channel, coeff_per_block)
+                    if honest:
+                        conf_blocks = _confidence_map_image_v3(state)
+                        conf_flat = conf_blocks.reshape(blocks_per_channel).astype(np.float32, copy=False)
+                        coeff_use *= conf_flat[None, :, None]
+                    coeff = coeff_use.reshape(-1)
+                    recon = _render_image_field_v3(state, coeff_vec=coeff).astype(np.float32)
+                    max_val = 255.0
                 else:
-                    recon_use = recon_img
-                recon = recon_use.astype(np.float32)
-                max_val = 255.0
+                    recon_img, conf = decode_image_holo_dir_meta(
+                        current_dir,
+                        max_chunks=max_chunks,
+                        prefer_gain=prefer_gain,
+                        use_recovery=use_recovery,
+                    )
+                    if honest:
+                        recon_use = self._attenuate_image(recon_img, conf)
+                    else:
+                        recon_use = recon_img
+                    recon = recon_use.astype(np.float32)
+                    max_val = 255.0
 
             if first_recon is None:
                 first_recon = recon
@@ -310,17 +405,25 @@ class Field:
             iter_dir = out_dir if i == 0 else f"{out_dir}_iter{i + 1}"
             dirs.append(iter_dir)
             if mode == "audio":
-                tmp = self._write_temp_wav(audio_use, int(sr))
-                try:
-                    encode_audio_holo_dir(tmp, iter_dir, target_chunk_kb=target_chunk_kb)
-                finally:
-                    self._cleanup_temp(tmp)
+                if use_v3:
+                    state.coeff_vec = coeff
+                    _write_audio_field_v3(state, iter_dir, target_chunk_kb=target_chunk_kb)
+                else:
+                    tmp = self._write_temp_wav(audio_use, int(sr))
+                    try:
+                        encode_audio_holo_dir(tmp, iter_dir, target_chunk_kb=target_chunk_kb)
+                    finally:
+                        self._cleanup_temp(tmp)
             else:
-                tmp = self._write_temp_image(recon_use.astype(np.uint8))
-                try:
-                    encode_image_holo_dir(tmp, iter_dir, target_chunk_kb=target_chunk_kb)
-                finally:
-                    self._cleanup_temp(tmp)
+                if use_v3:
+                    state.coeff_vec = coeff
+                    _write_image_field_v3(state, iter_dir, target_chunk_kb=target_chunk_kb)
+                else:
+                    tmp = self._write_temp_image(recon_use.astype(np.uint8))
+                    try:
+                        encode_image_holo_dir(tmp, iter_dir, target_chunk_kb=target_chunk_kb)
+                    finally:
+                        self._cleanup_temp(tmp)
 
             prev_recon = recon
             current_dir = iter_dir
@@ -425,6 +528,30 @@ class Field:
         return np.clip(np.round(healed), -32768.0, 32767.0).astype(np.int16)
 
     # ----------------- internal helpers -----------------
+
+    def _chunk_version(self, chunk_dir: Optional[str] = None) -> Optional[int]:
+        use_dir = chunk_dir or self.chunk_dir
+        try:
+            names = sorted(
+                f for f in os.listdir(use_dir)
+                if f.startswith("chunk_") and f.endswith(".holo")
+            )
+        except OSError:
+            return None
+        if not names:
+            return None
+        path = os.path.join(use_dir, names[0])
+        try:
+            with open(path, "rb") as f:
+                head = f.read(5)
+        except OSError:
+            return None
+        if len(head) < 5:
+            return None
+        magic = head[:4]
+        if magic not in (MAGIC_IMG, MAGIC_AUD):
+            return None
+        return int(head[4])
 
     def _chunk_files(self):
         return sorted(

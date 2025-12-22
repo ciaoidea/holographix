@@ -1644,6 +1644,191 @@ def _write_image_field_v3(
         )
 
 
+# ===================== Gauge alignment helpers (v3 image stacking) =====================
+
+
+def _shift_slices_1d(n: int, shift: int) -> tuple[int, int, int, int]:
+    """
+    Compute (src0, src1, dst0, dst1) slices for a zero-fill shift.
+
+    We implement translation as:
+
+        out[i] = inp[i - shift]
+
+    Positive `shift` moves content toward higher indices.
+    """
+    if shift == 0:
+        return 0, n, 0, n
+
+    if shift > 0:
+        src0 = 0
+        src1 = max(0, n - shift)
+        dst0 = min(n, shift)
+        dst1 = dst0 + (src1 - src0)
+        return src0, src1, dst0, dst1
+
+    s = min(n, -shift)
+    src0 = s
+    src1 = n
+    dst0 = 0
+    dst1 = max(0, n - s)
+    return src0, src1, dst0, dst1
+
+
+def _shift_array_xy(arr: np.ndarray, dy: int, dx: int) -> np.ndarray:
+    """
+    Shift a 2D or 3D array by (dy, dx) with zero fill.
+    """
+    a = np.asarray(arr)
+    if a.ndim < 2:
+        return a.copy()
+
+    h, w = int(a.shape[0]), int(a.shape[1])
+    sy0, sy1, dy0, dy1 = _shift_slices_1d(h, int(dy))
+    sx0, sx1, dx0, dx1 = _shift_slices_1d(w, int(dx))
+
+    out = np.zeros_like(a)
+    if sy1 <= sy0 or sx1 <= sx0 or dy1 <= dy0 or dx1 <= dx0:
+        return out
+
+    out[dy0:dy1, dx0:dx1, ...] = a[sy0:sy1, sx0:sx1, ...]
+    return out
+
+
+def _blockmap_from_coarse_v3(state: _ImageFieldStateV3) -> np.ndarray:
+    """
+    Build a low-resolution block-grid map from a v3 coarse image.
+    """
+    block = int(state.block_size)
+    h, w, c = int(state.h), int(state.w), int(state.c)
+    bh, bw = int(state.blocks_h), int(state.blocks_w)
+
+    coarse = np.asarray(state.coarse_up_arr, dtype=np.float32)
+    if coarse.ndim == 3 and c > 1:
+        gray = np.mean(coarse, axis=2)
+    elif coarse.ndim == 2:
+        gray = coarse
+    else:
+        gray = coarse[..., 0]
+
+    pad_h = max(0, bh * block - h)
+    pad_w = max(0, bw * block - w)
+    if pad_h > 0 or pad_w > 0:
+        gray = np.pad(gray, ((0, pad_h), (0, pad_w)), mode="edge")
+
+    pooled = gray.reshape(bh, block, bw, block).mean(axis=(1, 3)).astype(np.float32)
+    pooled -= float(np.mean(pooled))
+    if bh > 1 and bw > 1:
+        wy = np.hanning(bh).astype(np.float32)
+        wx = np.hanning(bw).astype(np.float32)
+        pooled *= (wy[:, None] * wx[None, :])
+    return pooled
+
+
+def _phase_corr_shift2d(ref_map: np.ndarray, tgt_map: np.ndarray) -> tuple[int, int, float]:
+    """
+    Estimate integer shift to apply to tgt_map so it best aligns to ref_map.
+    """
+    a = np.asarray(ref_map, dtype=np.float32)
+    b = np.asarray(tgt_map, dtype=np.float32)
+    if a.shape != b.shape:
+        raise ValueError("phase correlation requires equal shapes")
+
+    A = np.fft.fft2(a)
+    B = np.fft.fft2(b)
+    R = A * np.conj(B)
+    R /= np.maximum(np.abs(R), 1e-12)
+    corr = np.fft.ifft2(R).real
+
+    y, x = np.unravel_index(int(np.argmax(corr)), corr.shape)
+    h, w = corr.shape
+    dy = int(y) if int(y) <= h // 2 else int(y) - h
+    dx = int(x) if int(x) <= w // 2 else int(x) - w
+    peak = float(corr[int(y), int(x)])
+    return dy, dx, peak
+
+
+def _estimate_block_shift_image_v3(
+    ref: _ImageFieldStateV3,
+    tgt: _ImageFieldStateV3,
+    *,
+    min_peak: float = 0.15,
+    max_shift_blocks: Optional[int] = None,
+) -> tuple[int, int, float]:
+    """
+    Estimate a block-grid translation gauge between two v3 image fields.
+    """
+    ref_map = _blockmap_from_coarse_v3(ref)
+    tgt_map = _blockmap_from_coarse_v3(tgt)
+    dy, dx, peak = _phase_corr_shift2d(ref_map, tgt_map)
+
+    if not np.isfinite(peak) or peak < float(min_peak):
+        return 0, 0, float(peak)
+
+    bh, bw = int(ref.blocks_h), int(ref.blocks_w)
+    lim_y = bh // 2
+    lim_x = bw // 2
+    if max_shift_blocks is not None:
+        lim = max(0, int(max_shift_blocks))
+        lim_y = min(lim_y, lim)
+        lim_x = min(lim_x, lim)
+
+    dy = int(np.clip(dy, -lim_y, lim_y))
+    dx = int(np.clip(dx, -lim_x, lim_x))
+    return dy, dx, float(peak)
+
+
+def _shift_image_coeff_blocks_v3(
+    state: _ImageFieldStateV3,
+    dy_blocks: int,
+    dx_blocks: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Shift a v3 coefficient tensor by whole blocks.
+
+    Returns (coeff_shifted, mask_shifted). The returned mask is always provided,
+    even if the input state had no coeff_mask.
+    """
+    c = int(state.c)
+    bh = int(state.blocks_h)
+    bw = int(state.blocks_w)
+    block = int(state.block_size)
+    coeff_per_block = block * block
+    blocks_per_channel = bh * bw
+    total_expected = c * blocks_per_channel * coeff_per_block
+
+    coeff_src = np.asarray(state.coeff_vec[:total_expected], dtype=np.int16, order="C")
+    coeff_src = coeff_src.reshape(c, bh, bw, coeff_per_block)
+
+    sy0, sy1, dy0, dy1 = _shift_slices_1d(bh, int(dy_blocks))
+    sx0, sx1, dx0, dx1 = _shift_slices_1d(bw, int(dx_blocks))
+
+    coeff_out = np.zeros_like(coeff_src)
+    if sy1 > sy0 and sx1 > sx0 and dy1 > dy0 and dx1 > dx0:
+        coeff_out[:, dy0:dy1, dx0:dx1, :] = coeff_src[:, sy0:sy1, sx0:sx1, :]
+
+    if state.coeff_mask is not None:
+        mask_src = np.asarray(state.coeff_mask[:total_expected], dtype=bool, order="C")
+        mask_src = mask_src.reshape(c, bh, bw, coeff_per_block)
+        mask_out = np.zeros_like(mask_src)
+        if sy1 > sy0 and sx1 > sx0 and dy1 > dy0 and dx1 > dx0:
+            mask_out[:, dy0:dy1, dx0:dx1, :] = mask_src[:, sy0:sy1, sx0:sx1, :]
+        mask_flat = mask_out.reshape(-1)
+    else:
+        block_mask = np.zeros((bh, bw), dtype=bool)
+        if dy1 > dy0 and dx1 > dx0:
+            block_mask[dy0:dy1, dx0:dx1] = True
+        per_block = np.repeat(block_mask.reshape(-1), coeff_per_block)
+        mask_flat = np.tile(per_block, c).astype(bool)
+
+    coeff_flat = coeff_out.reshape(-1)
+    coeff_full = np.zeros_like(state.coeff_vec, dtype=np.int16)
+    mask_full = np.zeros_like(state.coeff_vec, dtype=bool)
+    coeff_full[:total_expected] = coeff_flat
+    mask_full[:total_expected] = mask_flat
+    return coeff_full, mask_full
+
+
 def _decode_image_holo_core(
     in_dir: str,
     *,
@@ -1770,6 +1955,9 @@ def stack_image_holo_dirs(
     output_path: str,
     *,
     max_chunks: Optional[int] = None,
+    gauge_align: bool = True,
+    min_gauge_peak: float = 0.15,
+    max_shift_blocks: Optional[int] = None,
 ) -> None:
     """
     Stack multiple holographic image directories to improve SNR over time.
@@ -1777,6 +1965,10 @@ def stack_image_holo_dirs(
     For olonomic v3 fields, if all decodable inputs are v3, stacking happens
     in coefficient space (genotypic stacking). Otherwise this falls back to a
     pixel-domain average (phenotypic stacking).
+
+    When `gauge_align` is enabled, we estimate an integer block-grid translation
+    between exposures (via phase correlation of the coarse base) and shift the
+    coefficient tensors before summing.
     """
     v3_states: list[_ImageFieldStateV3] = []
     all_v3 = True
@@ -1816,8 +2008,8 @@ def stack_image_holo_dirs(
 
         coeff_sum = np.zeros(total_coeff, dtype=np.float64)
         coeff_w = np.zeros(total_coeff, dtype=np.float64)
-        coarse_sum = None
-        coarse_count = 0
+        coarse_sum = np.zeros((int(ref.h), int(ref.w), int(ref.c)), dtype=np.float64)
+        coarse_w = np.zeros((int(ref.h), int(ref.w)), dtype=np.float64)
 
         for st in v3_states:
             if (st.h, st.w, st.c, st.block_size, st.blocks_h, st.blocks_w) != (
@@ -1827,25 +2019,37 @@ def stack_image_holo_dirs(
             if int(st.coeff_vec.size) != total_coeff:
                 continue
 
-            coarse_f = np.asarray(st.coarse_up_arr, dtype=np.float32)
-            if coarse_sum is None:
-                coarse_sum = coarse_f.astype(np.float64)
-            else:
-                coarse_sum += coarse_f.astype(np.float64)
-            coarse_count += 1
+            dy_b = 0
+            dx_b = 0
+            if gauge_align and st is not ref:
+                try:
+                    dy_b, dx_b, _peak = _estimate_block_shift_image_v3(
+                        ref,
+                        st,
+                        min_peak=float(min_gauge_peak),
+                        max_shift_blocks=max_shift_blocks,
+                    )
+                except Exception:
+                    dy_b, dx_b = 0, 0
 
-            if st.coeff_mask is None:
-                coeff_sum += st.coeff_vec.astype(np.float64)
-                coeff_w += 1.0
-            else:
-                m = st.coeff_mask.astype(bool)
-                coeff_sum[m] += st.coeff_vec[m].astype(np.float64)
-                coeff_w[m] += 1.0
+            dy_px = int(dy_b) * int(ref.block_size)
+            dx_px = int(dx_b) * int(ref.block_size)
 
-        if coarse_sum is None or coarse_count <= 0:
+            coeff_shift, mask_shift = _shift_image_coeff_blocks_v3(st, int(dy_b), int(dx_b))
+            coarse_shift = _shift_array_xy(np.asarray(st.coarse_up_arr, dtype=np.float32), dy_px, dx_px)
+            valid = _shift_array_xy(np.ones((int(ref.h), int(ref.w)), dtype=np.float32), dy_px, dx_px)
+
+            coarse_sum += coarse_shift.astype(np.float64) * valid[..., None].astype(np.float64)
+            coarse_w += valid.astype(np.float64)
+
+            m = np.asarray(mask_shift, dtype=bool)
+            coeff_sum[m] += coeff_shift[m].astype(np.float64)
+            coeff_w[m] += 1.0
+
+        if float(np.max(coarse_w)) <= 0.0:
             raise ValueError("No compatible v3 images found to stack")
 
-        coarse_avg = (coarse_sum / float(coarse_count)).astype(np.float32)
+        coarse_avg = (coarse_sum / np.maximum(coarse_w[..., None], 1.0)).astype(np.float32)
         coeff_avg = np.zeros(total_coeff, dtype=np.float32)
         np.divide(coeff_sum, np.maximum(coeff_w, 1.0), out=coeff_avg, where=coeff_w > 0.0)
 
@@ -3180,6 +3384,300 @@ def decode_audio_olonomic_holo_dir(
         use_recovery=use_recovery,
     )
     _write_wav_int16(output_wav, audio, int(sr))
+
+
+# ===================== Gauge alignment + stacking (v3 audio) =====================
+
+
+def _phase_corr_shift1d(ref: np.ndarray, tgt: np.ndarray) -> tuple[int, float]:
+    """
+    Estimate integer shift to apply to tgt so it aligns to ref (phase correlation).
+    """
+    a = np.asarray(ref, dtype=np.float32).reshape(-1)
+    b = np.asarray(tgt, dtype=np.float32).reshape(-1)
+    if a.size == 0 or b.size == 0:
+        return 0, 0.0
+
+    n = int(min(a.size, b.size))
+    a = a[:n]
+    b = b[:n]
+
+    a = a - float(np.mean(a))
+    b = b - float(np.mean(b))
+    if n > 1:
+        w = np.hanning(n).astype(np.float32)
+        a = a * w
+        b = b * w
+
+    A = np.fft.fft(a)
+    B = np.fft.fft(b)
+    R = A * np.conj(B)
+    R /= np.maximum(np.abs(R), 1e-12)
+    corr = np.fft.ifft(R).real
+
+    i = int(np.argmax(corr))
+    shift = i if i <= n // 2 else i - n
+    peak = float(corr[i])
+    return int(shift), float(peak)
+
+
+def _audio_envelope_frames_v3(state: _AudioFieldStateV3) -> np.ndarray:
+    """
+    Build a low-rate envelope (length = STFT frames) from the coarse waveform.
+    """
+    coarse = np.asarray(state.coarse_up, dtype=np.float32)
+    if coarse.ndim == 2 and int(state.ch) > 1:
+        mono = np.mean(np.abs(coarse), axis=1)
+    elif coarse.ndim == 2:
+        mono = np.abs(coarse[:, 0])
+    else:
+        mono = np.abs(coarse)
+
+    frames = int(state.frames)
+    n_fft = int(state.n_fft)
+    hop = int(state.hop)
+    n_samples = int(state.n_frames)
+
+    if frames <= 0:
+        return np.zeros(0, dtype=np.float32)
+
+    env = np.zeros(frames, dtype=np.float32)
+    for fi in range(frames):
+        t0 = fi * hop
+        t1 = min(n_samples, t0 + n_fft)
+        if t1 <= t0:
+            continue
+        env[fi] = float(np.mean(mono[t0:t1]))
+
+    env -= float(np.mean(env)) if env.size > 0 else 0.0
+    if env.size > 1:
+        env *= np.hanning(int(env.size)).astype(np.float32)
+    return env
+
+
+def _estimate_frame_shift_audio_v3(
+    ref: _AudioFieldStateV3,
+    tgt: _AudioFieldStateV3,
+    *,
+    min_peak: float = 0.15,
+    max_shift_frames: Optional[int] = None,
+) -> tuple[int, float]:
+    """
+    Estimate an integer frame shift to apply to tgt so it aligns to ref.
+    """
+    env_ref = _audio_envelope_frames_v3(ref)
+    env_tgt = _audio_envelope_frames_v3(tgt)
+    if env_ref.size == 0 or env_tgt.size == 0 or env_ref.size != env_tgt.size:
+        return 0, 0.0
+
+    shift, peak = _phase_corr_shift1d(env_ref, env_tgt)
+    if not np.isfinite(peak) or peak < float(min_peak):
+        return 0, float(peak)
+
+    lim = env_ref.size // 2
+    if max_shift_frames is not None:
+        lim = min(lim, max(0, int(max_shift_frames)))
+    shift = int(np.clip(int(shift), -int(lim), int(lim)))
+    return int(shift), float(peak)
+
+
+def _shift_audio_samples_xy(arr: np.ndarray, shift_samples: int) -> np.ndarray:
+    """
+    Shift a (n_samples, ch) array with zero fill.
+    """
+    a = np.asarray(arr)
+    if a.ndim == 1:
+        a = a[:, None]
+    n = int(a.shape[0])
+    sy0, sy1, dy0, dy1 = _shift_slices_1d(n, int(shift_samples))
+    out = np.zeros_like(a)
+    if sy1 <= sy0 or dy1 <= dy0:
+        return out
+    out[dy0:dy1, :] = a[sy0:sy1, :]
+    return out
+
+
+def _shift_audio_coeff_frames_v3(
+    state: _AudioFieldStateV3,
+    shift_frames: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Shift a v3 audio coefficient tensor by whole STFT frames.
+    """
+    ch = int(state.ch)
+    frames = int(state.frames)
+    bins = int(state.bins)
+    total_expected = ch * frames * bins * 2
+
+    coeff_src = np.asarray(state.coeff_vec[:total_expected], dtype=np.int16, order="C")
+    coeff_src = coeff_src.reshape(ch, frames, bins * 2)
+
+    sy0, sy1, dy0, dy1 = _shift_slices_1d(frames, int(shift_frames))
+    coeff_out = np.zeros_like(coeff_src)
+    if sy1 > sy0 and dy1 > dy0:
+        coeff_out[:, dy0:dy1, :] = coeff_src[:, sy0:sy1, :]
+
+    if state.coeff_mask is not None:
+        mask_src = np.asarray(state.coeff_mask[:total_expected], dtype=bool, order="C")
+        mask_src = mask_src.reshape(ch, frames, bins * 2)
+        mask_out = np.zeros_like(mask_src)
+        if sy1 > sy0 and dy1 > dy0:
+            mask_out[:, dy0:dy1, :] = mask_src[:, sy0:sy1, :]
+        mask_flat = mask_out.reshape(-1)
+    else:
+        frame_mask = np.zeros(frames, dtype=bool)
+        if dy1 > dy0:
+            frame_mask[dy0:dy1] = True
+        per_frame = np.repeat(frame_mask, bins * 2)
+        mask_flat = np.tile(per_frame, ch).astype(bool)
+
+    coeff_flat = coeff_out.reshape(-1)
+    coeff_full = np.zeros_like(state.coeff_vec, dtype=np.int16)
+    mask_full = np.zeros_like(state.coeff_vec, dtype=bool)
+    coeff_full[:total_expected] = coeff_flat
+    mask_full[:total_expected] = mask_flat
+    return coeff_full, mask_full
+
+
+def stack_audio_holo_dirs(
+    in_dirs: Sequence[str],
+    output_wav: str,
+    *,
+    max_chunks: Optional[int] = None,
+    gauge_align: bool = True,
+    min_gauge_peak: float = 0.15,
+    max_shift_frames: Optional[int] = None,
+) -> None:
+    """
+    Stack multiple holographic audio directories.
+
+    For mixed / legacy fields we fall back to sample-domain averaging.
+
+    For v3 audio fields we stack in coefficient space. When `gauge_align` is on,
+    we estimate an integer frame shift between exposures from the coarse
+    waveforms and shift the coefficient tensors before summing.
+    """
+    v3_states: list[_AudioFieldStateV3] = []
+    all_v3 = True
+
+    for d in in_dirs:
+        if not os.path.isdir(d):
+            continue
+        chunk_files = sorted(glob.glob(os.path.join(d, "chunk_*.holo")))
+        if not chunk_files:
+            continue
+        try:
+            with open(chunk_files[0], "rb") as f:
+                head = f.read(AUD_HEADER_SIZE)
+            version, *_ = _parse_audio_header(head)
+        except Exception:
+            all_v3 = False
+            break
+        if version != VERSION_AUD_OLO:
+            all_v3 = False
+            break
+
+        try:
+            st = _load_audio_field_v3(
+                d,
+                max_chunks=max_chunks,
+                prefer_gain=False,
+                use_recovery=None,
+                return_mask=True,
+            )
+            v3_states.append(st)
+        except Exception:
+            all_v3 = False
+            break
+
+    if all_v3 and v3_states:
+        ref = v3_states[0]
+        total_coeff = int(ref.coeff_vec.size)
+
+        coeff_sum = np.zeros(total_coeff, dtype=np.float64)
+        coeff_w = np.zeros(total_coeff, dtype=np.float64)
+
+        coarse_sum = np.zeros((int(ref.n_frames), int(ref.ch)), dtype=np.float64)
+        coarse_w = np.zeros((int(ref.n_frames),), dtype=np.float64)
+
+        for st in v3_states:
+            if (st.sr, st.ch, st.n_frames, st.n_fft, st.hop, st.frames, st.bins) != (
+                ref.sr, ref.ch, ref.n_frames, ref.n_fft, ref.hop, ref.frames, ref.bins
+            ):
+                continue
+            if int(st.coeff_vec.size) != total_coeff:
+                continue
+
+            shift_frames = 0
+            if gauge_align and st is not ref:
+                try:
+                    shift_frames, _peak = _estimate_frame_shift_audio_v3(
+                        ref,
+                        st,
+                        min_peak=float(min_gauge_peak),
+                        max_shift_frames=max_shift_frames,
+                    )
+                except Exception:
+                    shift_frames = 0
+
+            shift_samples = int(shift_frames) * int(ref.hop)
+
+            coeff_shift, mask_shift = _shift_audio_coeff_frames_v3(st, int(shift_frames))
+            coarse_shift = _shift_audio_samples_xy(np.asarray(st.coarse_up, dtype=np.float32), shift_samples)
+            valid = _shift_audio_samples_xy(
+                np.ones((int(ref.n_frames), 1), dtype=np.float32),
+                shift_samples,
+            )[:, 0]
+
+            coarse_sum += coarse_shift.astype(np.float64) * valid[:, None].astype(np.float64)
+            coarse_w += valid.astype(np.float64)
+
+            m = np.asarray(mask_shift, dtype=bool)
+            coeff_sum[m] += coeff_shift[m].astype(np.float64)
+            coeff_w[m] += 1.0
+
+        if float(np.max(coarse_w)) <= 0.0:
+            raise ValueError("No compatible v3 audio fields found to stack")
+
+        coarse_avg = (coarse_sum / np.maximum(coarse_w[:, None], 1.0)).astype(np.float32)
+
+        coeff_avg = np.zeros(total_coeff, dtype=np.float32)
+        np.divide(coeff_sum, np.maximum(coeff_w, 1.0), out=coeff_avg, where=coeff_w > 0.0)
+
+        audio = _render_audio_field_v3(ref, coeff_vec=coeff_avg, coarse_up=coarse_avg)
+        _write_wav_int16(output_wav, audio, int(ref.sr))
+        return
+
+    acc = None
+    count = 0
+    sr_ref = None
+
+    for d in in_dirs:
+        if not os.path.isdir(d):
+            continue
+        try:
+            audio, sr = _decode_audio_holo_core(d, max_chunks=max_chunks)
+        except Exception:
+            continue
+        if sr_ref is None:
+            sr_ref = int(sr)
+        if int(sr) != int(sr_ref):
+            continue
+        a = np.asarray(audio, dtype=np.float32)
+        if acc is None:
+            acc = a
+        else:
+            n = min(int(acc.shape[0]), int(a.shape[0]))
+            if n <= 0:
+                continue
+            acc = acc[:n] + a[:n]
+        count += 1
+
+    if acc is None or count <= 0 or sr_ref is None:
+        raise ValueError("No decodable audio holographic directories to stack")
+
+    out = np.clip(np.rint(acc / float(count)), -32768, 32767).astype(np.int16)
+    _write_wav_int16(output_wav, out, int(sr_ref))
 
 
 

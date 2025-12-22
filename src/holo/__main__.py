@@ -200,6 +200,11 @@ def _parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
         default=None,
         help="Limit chunks per exposure when stacking.",
     )
+    p.add_argument(
+        "--stack-no-gauge",
+        action="store_true",
+        help="Disable gauge alignment when stacking v3 fields (keeps pure averaging).",
+    )
 
     p.add_argument("--blocks", type=int, default=None, help="Explicit chunk count for encoding.")
     p.add_argument("--coarse-side", type=int, default=16, help="Image coarse max side (encoding).")
@@ -961,8 +966,25 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.stack:
         if len(args.stack) < 2:
             raise ValueError("--stack requires at least two .holo directories")
-        out = args.output or "stacked_recon.png"
-        holo.stack_image_holo_dirs(args.stack, out, max_chunks=args.stack_max_chunks)
+        mode = None
+        for p in args.stack:
+            if os.path.isdir(p):
+                try:
+                    mode = holo.detect_mode_from_chunk_dir(p)
+                    break
+                except Exception:
+                    continue
+        if mode is None:
+            mode = "image"
+
+        gauge = not bool(getattr(args, "stack_no_gauge", False))
+
+        if mode == "audio":
+            out = args.output or "stacked_recon.wav"
+            holo.stack_audio_holo_dirs(args.stack, out, max_chunks=args.stack_max_chunks, gauge_align=gauge)
+        else:
+            out = args.output or "stacked_recon.png"
+            holo.stack_image_holo_dirs(args.stack, out, max_chunks=args.stack_max_chunks, gauge_align=gauge)
         print(out)
         return 0
 

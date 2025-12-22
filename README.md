@@ -215,6 +215,7 @@ from holo.codec import (
     encode_image_olonomic_holo_dir, decode_image_olonomic_holo_dir,
     encode_audio_olonomic_holo_dir, decode_audio_olonomic_holo_dir,
     stack_image_holo_dirs,
+    stack_audio_holo_dirs,
 )
 
 encode_image_olonomic_holo_dir("frame.png", "frame.holo", block_count=16, quality=60)

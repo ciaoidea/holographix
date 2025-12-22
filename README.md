@@ -440,6 +440,12 @@ Field operations are first-class: decode partially at any time, heal to restore 
 
 Canonical, versioned documentation lives in `docs/`. The Wiki is for drafts, notes, and roadmap items.
 
+Docs structure:
+- [`docs/guides/`](https://github.com/ciaoidea/HolographiX/tree/V3.0/docs/guides) How to run what is implemented today (commands, flags, workflows).
+- [`docs/kernel/`](https://github.com/ciaoidea/HolographiX/tree/V3.0/docs/kernel) Local behavior and policies that exist in code today.
+- [`docs/spec/`](https://github.com/ciaoidea/HolographiX/tree/V3.0/docs/spec) Protocol and file format contracts (wire/file details).
+- [`docs/vision/`](https://github.com/ciaoidea/HolographiX/tree/V3.0/docs/vision) Stable, release-level narrative (not weekly notes).
+
 ```
 README.md                  top-level overview (this file)
 src/pyproject.toml         packaging for editable install

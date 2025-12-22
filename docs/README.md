@@ -9,5 +9,8 @@ Structure:
 - `kernel/` Local behavior and policies that exist in code today.
 - `vision/` Stable, release-level narrative (not weekly notes).
 
+Kernel highlights:
+- `kernel/stacking.md` Gauge alignment behavior for v3 stacking.
+
 The Wiki is the scratchpad: roadmap, long notes, moving ideas, and drafts.
 If it is not implemented in `src/`, it does not belong here.

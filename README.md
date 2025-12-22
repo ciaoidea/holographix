@@ -157,7 +157,7 @@ holo.tv      -> multi-frame scheduling (HoloTV windows)
 - `--heal` / `--heal-fixed-point` – heal a .holo dir (one-step or fixed-point)
 - `--heal-out DIR` – output dir for healing (default: derived)
 - `--heal-target-kb N` – chunk size for healing output
-- `--stack dir1 dir2 ...` – stack multiple .holo dirs (image or audio)
+- `--stack dir1 dir2 ...` – stack multiple .holo dirs (image or audio); see `docs/kernel/stacking.md`
 - `--stack-no-gauge` – disable gauge alignment for v3 stacking (pure average)
 - `tnc-tx --chunk-dir DIR [--uri holo://id] --out tx.wav` – encode chunks to AFSK WAV (URI optional)
 - `tnc-rx --input rx.wav --out DIR [--uri holo://id]` – decode AFSK WAV into chunks

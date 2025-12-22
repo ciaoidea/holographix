@@ -530,7 +530,7 @@ Transport‑agnostic: codec math is separate from mesh/UDP; use your own transpo
 - Bohm, D. (1980). *Wholeness and the Implicate Order*. London: Routledge (Routledge Classics ed. 2002, ISBN 978-0-415-28979-5).
 - Bohm, D. & Hiley, B. J. (1993). *The Undivided Universe: An Ontological Interpretation of Quantum Theory*. London: Routledge. ISBN 978-0-415-12185-9
 - Rizzo, A. *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. DOI: [10.4236/apm.2023.139038](https://doi.org/10.4236/apm.2023.139038)
-- Rizzo, A. (2025). *HolographiX: Holographic Information MatriX for Resilient Content Diffusion in Networks*. In *HolographiX: From Fragile Streams to Information Fields* (v1.6.9, 1º ed.). Zenodo. DOI: [10.5281/zenodo.18017872](https://doi.org/10.5281/zenodo.18017872)
+- Rizzo, A. (2025). *HolographiX: Holographic Information MatriX for Resilient Content Diffusion in Networks* (v1.6.9). Zenodo. [https://doi.org/10.5281/zenodo.18017872](https://doi.org/10.5281/zenodo.18017872)
 - Rizzo, A. (2025). *HolographiX: From Fragile Streams to Information Fields*. [ISBN-13: 979-8278598534](https://www.amazon.com/dp/B0G6VQ3PWD)
 - Hamann, S. (2025). *The Topological Fixed Point Theory of Fundamental Constants*. DOI: [10.5281/zenodo.15779883](https://zenodo.org/doi/10.5281/zenodo.15779883)
 

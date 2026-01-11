@@ -5,11 +5,13 @@
 
 <img width="1280" alt="holographix cover" src="https://github.com/user-attachments/assets/ae95ff1f-b15f-46f3-bf1c-bebab868b851" />
 
+---
+
 ## Thesis (what this actually is)
 
 HolographiX is a **framework that makes information resilient by construction**.
 
-Optical holography is not a “transport trick”: it is a property of *representation*. Cut the plate and you still see the whole scene; you lose detail, not geometry. This repository engineers the same invariance in software: it defines a representation in which **any non‑empty subset of fragments decodes to a coherent best‑so‑far estimate**, improving smoothly as more fragments arrive.
+Optical holography is not a “transport trick”: it is a property of *representation*. Cut the plate and you still see the whole scene; you lose detail, not geometry. This repository engineers the same invariance in software: it defines a representation in which **any non-empty subset of fragments decodes to a coherent best-so-far estimate**, improving smoothly as more fragments arrive.
 
 So the core claim is not “we can move data on UDP”. The claim is:
 
@@ -18,67 +20,147 @@ The information artifact itself remains structurally interpretable under fragmen
 
 Networks, filesystems, radios, object stores, model pipelines are just different ways of circulating or sampling pieces of the same resilient field.
 
+---
+
+## The theoretical backbone (in plain words)
+
+HolographiX is built on three coupled ideas:
+
+1) **Holography (distributed evidence):** each chunk carries global support; losing chunks loses detail, not geometry.  
+2) **Golden spiral → torsion (holonomy memory):** the φ-driven MatriX interleave makes evidence composition path-dependent internally (non-commuting updates), leaving a torsion-like orientation state.  
+3) **Chunk reasoning (evidence-first):** everything is expressed as **chunk algebra** (merge, heal, stack, prioritize, recover). The system evolves by accumulating evidence, not by global optimization or “training phases”.
+
+Optionally, a **Lorenz attractor** can be used as a bounded chaos schedule to diversify which chunks / coefficients are sampled when uncertainty is high.
+
+---
+
 ## From `http://` to `holo://`
 
-The classical Internet is host‑centric: DNS resolves a name to a host, HTTP pulls a byte stream from that place, and reliability is mostly a property of the channel.
+The classical Internet is host-centric: DNS resolves a name to a host, HTTP pulls a byte stream from that place, and reliability is mostly a property of the channel.
 
-HolographiX is content‑centric: `holo://...` is a cue that opens a local attractor (a session). The network delivers evidence chunks from anywhere (cache, mesh peers, gateways), in any order, and the object reconstructs progressively as uncertainty collapses into a coherent best‑so‑far field.
+HolographiX is content-centric: `holo://...` is a cue that opens a local attractor (a session). The network delivers evidence chunks from anywhere (cache, mesh peers, gateways), in any order, and the object reconstructs progressively as uncertainty collapses into a coherent best-so-far field.
 
 Read the full note (architecture + content routing + kernel/privacy dynamics):
 **[From Internet to HolographiX](docs/vision/from-internet-to-holo.md)**
 
+---
+
 ## Abstract (operational contract)
 
-Let x be a source signal (image/audio/bytes). The encoder produces N chunks:
+Let `x` be a source signal (image/audio/bytes). The encoder produces `N` chunks:
 
-  C = E(x) = {c_1, ..., c_N}
+```
 
-Let S be any finite multiset of received chunks with at least one valid chunk
-for the same content_id (duplicates and arbitrary order allowed). The decoder returns:
+C = E(x) = {c_1, ..., c_N}
 
-  (x_hat, u) = D(S)
+```
 
-where x_hat is a full-support best-so-far reconstruction and u is an uncertainty map/curve.
+Let `S` be any finite multiset of received chunks with at least one valid chunk
+for the same `content_id` (duplicates and arbitrary order allowed). The decoder returns:
 
-Define the reference reconstruction x* = D(C). For a distortion measure d(.,.),
+```
+
+(x_hat, u, K) = D(S)
+
+```
+
+- `x_hat` is a full-support best-so-far reconstruction  
+- `u` is an uncertainty map/curve  
+- `K` is an (optional) **torsion/holonomy state**: an antisymmetric path-memory of evidence composition
+
+Define the reference reconstruction `x* = D(C)`. For a distortion measure `d(.,.)`,
 the system is designed so that, for increasing evidence, expected distortion decreases:
 
-  E[ d( D(S_k), x* ) ] is non-increasing in k
+```
 
-where S_k contains k distinct informative chunks sampled from C (after validity checks).
+E[ d( D(S_k), x* ) ] is non-increasing in k
+
+````
+
+where `S_k` contains `k` distinct informative chunks sampled from `C` (after validity checks).
 
 Missing evidence should manifest primarily as loss of detail (attenuated / missing high-frequency
 coefficients), not as missing coordinates (holes in space/time).
 
 This permutation-invariant, idempotent “any subset works” property is generalized holography.
 
+---
+
 ## Not Just an Encoder/Decoder: A Resilient Information Field Framework
 
 If you look at HolographiX as “a decoder that explodes information into a field and then transports it”, you miss the point. The “field” is not an intermediate representation: it is the *data structure*, the durable form of the information.
 
-Transport is optional; field operations are fundamental. You can store a field, merge fields, heal a damaged field, stack fields to raise SNR, pack multiple objects into one field, prioritize transmission by gain, add recovery chunks. Those are not add-ons; they are the algebra that makes “resilient information” real.
+Transport is optional; **field operations are fundamental**. You can store a field, merge fields, heal a damaged field, stack fields to raise SNR, pack multiple objects into one field, prioritize transmission by gain, add recovery chunks. Those are not add-ons; they are the algebra that makes “resilient information” real.
 
-## Mechanism (how the invariance is enforced)
+---
 
-HolographiX uses a coarse + residual decomposition. The coarse part provides a scaffold that makes single‑chunk decoding meaningful. The residual is distributed across chunks using a deterministic golden‑ratio interleave (the MatriX) so that each chunk touches the whole support of the signal. As a result, “how many chunks you have” matters far more than “which chunk IDs you have”.
+## Field dynamics: torsion from the golden spiral + Lorenz exploration
 
-HolographiX separates representation from transport. The codec/math defines how evidence is spread across chunks; the same chunks can live on UDP meshes, filesystems, object stores, delay-tolerant links, or flow directly into inference pipelines. The primitive is a stateless best‑so‑far field.
+### 1) Golden spiral → torsion memory (φ)
 
-AI fit: best‑so‑far fields enable anytime inference — models can run on partial reconstructions (or on field tokens) and improve continuously as more evidence arrives. Operational loop: receive chunks -> decode best‑so‑far -> run model -> repeat.
+HolographiX distributes residual evidence across chunks with a **golden-ratio / golden-angle interleave** (the MatriX).
+This is a deliberate φ-driven phase advance (a discrete logarithmic spiral in coefficient space):
+
+- It avoids resonance and clumping: evidence coverage becomes quasi-uniform across support.
+- It makes internal updates **non-commuting**: order can imprint a stable orientation.
+
+We track that imprint as a torsion-like state `K`:
+
+- same chunks, different order ⇒ same coherent reconstruction trend, but possibly different internal phase/orientation
+- `K` can guide **healing**, **stacking**, **gain scheduling**, and **alignment** between partially overlapping fields
+
+This is “torsion” in the operational sense: **history written geometrically (holonomy)**.
+
+### 2) Lorenz attractor (optional chaos schedule)
+
+Under heavy loss, deterministic heuristics can keep sampling redundant evidence.
+HolographiX optionally uses a **bounded chaotic driver** (Lorenz attractor) to diversify which coefficients/chunks are emphasized when uncertainty is high:
+
+- low uncertainty ⇒ stable, contractive chunk accumulation
+- high uncertainty ⇒ controlled chaos that perturbs selection/healing directions, still reproducible and content-seeded
+
+Lorenz is not the “meaning engine”; it is the **exploration budget** of the field.
+
+### 3) Why this matches holography + holonomic brain theory
+
+- **Holography:** distributed evidence; missing chunks = missing detail, not missing coordinates.
+- **Holonomy (Pribram):** phase-sensitive distributed memory; reconstruction from partial cues.
+- **HolographiX:** golden phase advance (φ) + torsion memory (`K`) + chunk algebra yields a practical holonomic representation.
+
+---
+
+## Mechanism (how invariance is enforced)
+
+HolographiX uses a coarse + residual decomposition.
+
+- The **coarse part** provides a scaffold that makes single-chunk decoding meaningful.
+- The **residual** is distributed across chunks using a deterministic golden-ratio interleave (the MatriX) so that each chunk touches the whole support of the signal.
+
+As a result, “how many chunks you have” matters far more than “which chunk IDs you have”.
+
+HolographiX separates representation from transport. The codec/math defines how evidence is spread across chunks; the same chunks can live on UDP meshes, filesystems, object stores, delay-tolerant links, or flow directly into inference pipelines. The primitive is a stateless best-so-far field.
+
+AI fit: best-so-far fields enable anytime inference — models can run on partial reconstructions (or on field tokens) and improve continuously as more evidence arrives. Operational loop: receive chunks -> decode best-so-far -> run model -> repeat.
+
+---
 
 ## v3.0 (olonomic) in one sentence
 
 v3 moves residuals into local wave bases (DCT for images, STFT for audio). Missing chunks become missing coefficients (“missing waves”), shrinking chunks while keeping graceful degradation.
 
+---
+
 ## What’s new in 3.0 (olonomic v3)
 
-Images: residual -> block DCT (default 8×8), JPEG‑style quantization, zigzag, golden split across chunks. Missing chunks = missing waves, not missing pixels.
+Images: residual -> block DCT (default 8×8), JPEG-style quantization, zigzag, golden split across chunks. Missing chunks = missing waves, not missing pixels.
 
-Audio: residual -> STFT (Hann window, overlap‑add), per‑bin quantization, golden split across chunks. Missing chunks = softer/detail loss, not gaps/clicks.
+Audio: residual -> STFT (Hann window, overlap-add), per-bin quantization, golden split across chunks. Missing chunks = softer/detail loss, not gaps/clicks.
 
 Metadata containers: v3 coarse payloads carry codec params (block size, quality, padding for images; n_fft/hop/quality for audio) without changing header size.
 
-CLI flag: `--olonomic` to encode with v3. Decoding auto‑detects version per chunk dir.
+CLI flag: `--olonomic` to encode with v3. Decoding auto-detects version per chunk dir.
+
+---
 
 ## Install
 
@@ -86,7 +168,9 @@ CLI flag: `--olonomic` to encode with v3. Decoding auto‑detects version per ch
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ./src          # install holo and deps (numpy, pillow)
 # or run in-place: PYTHONPATH=src python3 -m holo ...
-```
+````
+
+---
 
 ## Quick start
 
@@ -116,7 +200,7 @@ python3 -m holo --olonomic /path/to/track.wav 16
 python3 -m holo /path/to/track.wav.holo --output track_recon.wav
 ```
 
-Try packet‑sized chunks (mesh/UDP):
+Try packet-sized chunks (mesh/UDP):
 
 ```bash
 python3 -m holo src/flower.jpg 1 --packet-bytes 1136 --coarse-side 16
@@ -126,6 +210,8 @@ python3 -m holo src/flower.jpg 1 --packet-bytes 1136 --coarse-side 16
   <img width="1280" alt="graded reconstruction" src="https://github.com/user-attachments/assets/b1cd73a9-e4cc-43df-b528-d5c1c184ad52" /><br/>
   <em>Graded reconstruction: fewer chunks soften detail without holes.</em>
 </p>
+
+---
 
 ## Layering map (codec -> transport -> modem)
 
@@ -141,27 +227,31 @@ holo.tv      -> multi-frame scheduling (HoloTV windows)
   <em>Codec → transport → field layering: genotype/phenotype/cortex/mesh analogy.</em>
 </p>
 
-## CLI cheat‑sheet (core)
+---
 
-- `python3 -m holo INPUT [TARGET_KB]` – encode a file to `INPUT.holo`
-- `python3 -m holo INPUT.holo [--max-chunks K]` – decode using up to K chunks (auto-detects v2/v3)
-- `--olonomic` – use version 3 (DCT/STFT residuals); pair with `--quality Q`
-- `--blocks N` – set chunk count (default keeps coarse duplicated per chunk)
-- `--packet-bytes B` – set MTU budget (default 0 = no limit; increases chunk count when set)
-- `--coarse-side S` (images) / `--coarse-frames F` (audio) – coarse resolution
-- `--coarse-model downsample|latent_lowfreq|ae_latent` – coarse base model for v3
-- `--recovery rlnc --overhead 0.25` – add recovery chunks (systematic RLNC)
-- `--use-recovery` – use recovery chunks when decoding (auto if present)
-- `--prefer-gain` – when decoding with `--max-chunks`, choose best-K by score
-- `--write-uncertainty` – emit confidence map/curve next to the output
-- `--heal` / `--heal-fixed-point` – heal a .holo dir (one-step or fixed-point)
-- `--heal-out DIR` – output dir for healing (default: derived)
-- `--heal-target-kb N` – chunk size for healing output
-- `--stack dir1 dir2 ...` – stack multiple .holo dirs (image or audio); see `docs/kernel/stacking.md`
-- `--stack-no-gauge` – disable gauge alignment for v3 stacking (pure average)
-- `tnc-tx --chunk-dir DIR [--uri holo://id] --out tx.wav` – encode chunks to AFSK WAV (URI optional)
-- `tnc-rx --input rx.wav --out DIR [--uri holo://id]` – decode AFSK WAV into chunks
-- `tnc-wav-fix --input in.wav --out fixed.wav` – re-encode to PCM16 mono
+## CLI cheat-sheet (core)
+
+* `python3 -m holo INPUT [TARGET_KB]` – encode a file to `INPUT.holo`
+* `python3 -m holo INPUT.holo [--max-chunks K]` – decode using up to K chunks (auto-detects v2/v3)
+* `--olonomic` – use version 3 (DCT/STFT residuals); pair with `--quality Q`
+* `--blocks N` – set chunk count (default keeps coarse duplicated per chunk)
+* `--packet-bytes B` – set MTU budget (default 0 = no limit; increases chunk count when set)
+* `--coarse-side S` (images) / `--coarse-frames F` (audio) – coarse resolution
+* `--coarse-model downsample|latent_lowfreq|ae_latent` – coarse base model for v3
+* `--recovery rlnc --overhead 0.25` – add recovery chunks (systematic RLNC)
+* `--use-recovery` – use recovery chunks when decoding (auto if present)
+* `--prefer-gain` – when decoding with `--max-chunks`, choose best-K by score
+* `--write-uncertainty` – emit confidence map/curve next to the output
+* `--heal` – heal a `.holo` dir (chunk-wise repair + redistribution)
+* `--heal-out DIR` – output dir for healing (default: derived)
+* `--heal-target-kb N` – chunk size for healing output
+* `--stack dir1 dir2 ...` – stack multiple `.holo` dirs (image or audio); see `docs/kernel/stacking.md`
+* `--stack-no-gauge` – disable gauge alignment for v3 stacking (pure average)
+* `tnc-tx --chunk-dir DIR [--uri holo://id] --out tx.wav` – encode chunks to AFSK WAV (URI optional)
+* `tnc-rx --input rx.wav --out DIR [--uri holo://id]` – decode AFSK WAV into chunks
+* `tnc-wav-fix --input in.wav --out fixed.wav` – re-encode to PCM16 mono
+
+---
 
 ## Framework CLI map
 
@@ -191,9 +281,12 @@ holo.tv      -> multi-frame scheduling (HoloTV windows)
 ```
 
 Notes:
-- `holo://...` URIs map to `content_id = blake2s(holo://...)`.
-- Net layer handles datagrams and the control plane (inventory/want).
-- TNC layer turns datagrams into audio (and back).
+
+* `holo://...` URIs map to `content_id = blake2s(holo://...)`.
+* Net layer handles datagrams and the control plane (inventory/want).
+* TNC layer turns datagrams into audio (and back).
+
+---
 
 ## CLI help and navigation
 
@@ -205,6 +298,8 @@ python3 -m holo tnc-tx --help
 python3 -m holo tnc-rx --help
 python3 -m holo tnc-wav-fix --help
 ```
+
+---
 
 ## Python API highlights
 
@@ -226,23 +321,25 @@ encode_audio_olonomic_holo_dir("track.wav", "track.holo", block_count=12, n_fft=
 decode_audio_holo_dir("track.holo", "track_recon.wav")
 ```
 
+---
+
 ## Advanced modes (field algebra in practice)
 
 Recovery (RLNC): optional recovery chunks (`recovery_*.holo`) can reconstruct missing residual slices under heavy loss. Encode with `--recovery rlnc --overhead 0.25` and decode with `--use-recovery`.
 
-Coarse models: v3 coarse is pluggable (`--coarse-model downsample|latent_lowfreq|ae_latent`). `latent_lowfreq` keeps only low‑frequency DCT/STFT coefficients; `ae_latent` loads optional tiny weights from `.npz` if present.
+Coarse models: v3 coarse is pluggable (`--coarse-model downsample|latent_lowfreq|ae_latent`). `latent_lowfreq` keeps only low-frequency DCT/STFT coefficients; `ae_latent` loads optional tiny weights from `.npz` if present.
 
 Uncertainty output: decode with `--write-uncertainty` to produce `*_confidence.png` (images) or `*_confidence.npy` (audio) where 1.0 means fully observed.
 
-Chunk priority: encoders write per‑chunk scores and `manifest.json` ordering. Use `--prefer-gain` for best‑K decode, and mesh sender priority flags to transmit high‑gain chunks first.
+Chunk priority: encoders write per-chunk scores and `manifest.json` ordering. Use `--prefer-gain` for best-K decode, and mesh sender priority flags to transmit high-gain chunks first.
 
-Fixed‑point healing: `Field.heal_fixed_point(...)` iterates healing until deltas stabilize, with drift guards for lossy v3.
-
-CLI healing: use `--heal` or `--heal-fixed-point` on a `.holo` directory to re-encode the current best‑so‑far.
+Healing: `--heal` performs a **chunk-wise repair + redistribution** pass so degraded fields regain a clean evidence layout without changing the core “any subset works” contract.
 
 TNC (experimental): `holo.tnc` provides a minimal AFSK modem + framing to carry `holo.net.transport` datagrams over audio.
 
 HoloTV (experimental): `holo.tv` schedules multi-frame windows and demuxes datagrams into per-frame fields above `holo.net` and `holo.tnc`.
+
+---
 
 ## Update summary (latest)
 
@@ -254,20 +351,20 @@ Uncertainty: confidence maps/curves from decoder masks, new meta decode helpers,
 
 Chunk priority: score-aware manifest + prefer-gain decode and mesh sender ordering support.
 
-Healing: fixed-point healing loop with convergence metric and drift guards.
-
-The local healing process uses a deterministic self-consistency loop: we iteratively apply a repair operator until the field stabilizes (a practical fixed-point iteration). (Ref. Hamann, S. (2025). From topology to dynamics: The order behind α and the natural constants, v1.0.6 (01 Sep 2025), §9.1 — used here as conceptual inspiration for fixed-point self-consistency loops.)
+Healing: chunk-wise repair + redistribution with drift guards for lossy v3.
 
 <details>
   <summary><b>Implementation status (plan checklist)</b></summary>
 
-- [x] Review codec/field/mesh flow and implement RLNC recovery chunk format + GF(256) helpers.
-- [x] Add coarse-model abstraction (downsample, latent_lowfreq, ae_latent) and store model name in v3 metadata.
-- [x] Implement uncertainty tracking + meta decode helpers; integrate priority selection and manifest generation.
-- [x] Add tests for recovery/uncertainty/prefer-gain/fixed-point healing; update README/examples/CLI.
-- [x] Run test suite and address issues.
+* [x] Review codec/field/mesh flow and implement RLNC recovery chunk format + GF(256) helpers.
+* [x] Add coarse-model abstraction (downsample, latent_lowfreq, ae_latent) and store model name in v3 metadata.
+* [x] Implement uncertainty tracking + meta decode helpers; integrate priority selection and manifest generation.
+* [x] Add tests for recovery/uncertainty/prefer-gain/healing; update README/examples/CLI.
+* [x] Run test suite and address issues.
 
 </details>
+
+---
 
 ## CLI guide (new features)
 
@@ -290,11 +387,10 @@ Uncertainty output:
 PYTHONPATH=src python3 -m holo src/flower.jpg.holo --write-uncertainty
 ```
 
-Healing (one-step and fixed-point):
+Healing (chunk-wise):
 
 ```bash
 PYTHONPATH=src python3 -m holo src/flower.jpg.holo --heal
-PYTHONPATH=src python3 -m holo src/flower.jpg.holo --heal-fixed-point --heal-iters 4 --heal-tol 1e-3
 ```
 
 Mesh sender priority + recovery:
@@ -302,6 +398,8 @@ Mesh sender priority + recovery:
 ```bash
 PYTHONPATH=src python3 src/examples/holo_mesh_sender.py --uri holo://demo/flower --chunk-dir src/flower.jpg.holo --peer 127.0.0.1:5000 --priority gain --send-recovery
 ```
+
+---
 
 ## TNC quickstart (experimental)
 
@@ -319,6 +417,8 @@ samples = awgn(samples, 30.0)  # optional noise
 decoded = modem.decode(samples)
 assert decoded == [payload]
 ```
+
+---
 
 ## Ham radio transport (HF/VHF/UHF/SHF)
 
@@ -339,9 +439,10 @@ radio audio
 ```
 
 Why datagrams on radio:
-- CRC lets you drop corrupted frames instead of smearing errors across the image.
-- Loss/reordering is expected on HF; field chunks degrade in detail, not in geometry.
-- Interleaving and RLNC recovery stay possible without retransmissions.
+
+* CRC lets you drop corrupted frames instead of smearing errors across the image.
+* Loss/reordering is expected on HF; field chunks degrade in detail, not in geometry.
+* Interleaving and RLNC recovery stay possible without retransmissions.
 
 In practice you can replace the AFSK demo with any modem that yields bytes. The Holo layers above it stay unchanged.
 
@@ -372,33 +473,7 @@ PYTHONPATH=src python3 -m holo tnc-rx --input rx_clean.wav --uri holo://clean/de
 
 Loopback tip (no radio): use `tx_noise.wav` as `rx_noise.wav` to test the full chain.
 
-### On-air workflow (TX -> RX)
-
-1) Encode the image/audio into `.holo` chunks.
-2) Run `tnc-tx` to build a WAV (baseband audio).
-3) Feed WAV audio into the radio (line-in/IF preferred).
-4) Record RX audio into a WAV.
-5) Run `tnc-rx` to rebuild chunks, then decode the image/audio.
-
-Suggested parameter table (AFSK, conservative defaults):
-
-| Link quality | --baud | --fs | --max-payload | --gap-ms | --include-recovery | Compression/AGC |
-| --- | --- | --- | --- | --- | --- | --- |
-| Noisy/variable (HF) | 1200 | 9600 | 320 | 40 | yes | OFF |
-| Clean link (VHF/UHF/SHF) | 1200 | 9600 | 512 | 15 | optional | OFF |
-
-Notes:
-- Use line-in/IF audio from the rig or SDR when possible; avoid acoustic coupling.
-- Disable AGC/compression when you can; keep levels below clipping.
-- `--max-payload` and `--gap-ms` trade throughput vs robustness; tune for your link budget.
-- If you run multiple streams, pass an explicit `--uri` on TX and RX to avoid mixing.
-- Size rule of thumb: `wav_bytes ~ payload_bytes * (16 * fs / baud)`; `--gap-ms` and `--preamble-len` add overhead.
-- Example: 600 KB payload at `fs=9600`, `baud=1200` gives ~600 * 128 = 76 MB before gaps and preamble; overhead can push this well past 100 MB.
-- `tnc-rx` defaults to best-effort PCM16 decode; disable with `--no-force-pcm16` if needed.
-- If you edited or trimmed a WAV and the header breaks, fix it with:
-  `PYTHONPATH=src python3 -m holo tnc-wav-fix --input rx.wav --out rx_pcm.wav`
-- If the file is badly corrupted, force raw decode:
-  `PYTHONPATH=src python3 -m holo tnc-rx --input rx.wav --raw-s16le --raw-fs 48000 --out rx.holo`
+---
 
 ## HoloTV quickstart (experimental)
 
@@ -426,119 +501,46 @@ frame0_dir = rx.chunk_dir_for_frame(0)
 print("frame 0 chunks:", sorted(Path(frame0_dir).glob("chunk_*.holo")))
 ```
 
+---
+
 ## Olonomic v3 details (operational)
 
-Images: residual = img − coarse_up -> pad to block size -> DCT‑II (ortho) per block/channel -> JPEG‑style quant (quality 1‑100) -> zigzag -> int16 -> golden permutation -> zlib per chunk. Missing chunks zero coefficients; recon via dequant + IDCT + coarse.
+Images: residual = img − coarse_up -> pad to block size -> DCT-II (ortho) per block/channel -> JPEG-style quant (quality 1-100) -> zigzag -> int16 -> golden permutation -> zlib per chunk. Missing chunks zero coefficients; recon via dequant + IDCT + coarse.
 
-Audio: residual = audio − coarse_up -> STFT (sqrt-Hann, hop=n_fft/2 default) -> scale by n_fft -> per‑bin quant steps grow with freq (quality 1‑100) -> int16 (Re/Im interleaved) -> golden permutation -> zlib per chunk. Recon via dequant, ISTFT overlap‑add, coarse + residual.
+Audio: residual = audio − coarse_up -> STFT (sqrt-Hann, hop=n_fft/2 default) -> scale by n_fft -> per-bin quant steps grow with freq (quality 1-100) -> int16 (Re/Im interleaved) -> golden permutation -> zlib per chunk. Recon via dequant, ISTFT overlap-add, coarse + residual.
 
-Metadata: packed inside coarse payload (PNG + OLOI_META for images; zlib coarse + OLOA_META for audio) so headers stay backward‑compatible.
+Metadata: packed inside coarse payload (PNG + OLOI_META for images; zlib coarse + OLOA_META for audio) so headers stay backward-compatible.
 
 Field operations are first-class: decode partially at any time, heal to restore a clean distribution, stack exposures to raise SNR, and pack/extract multiple objects into one field.
 
-## Repository map
+---
 
-Canonical, versioned documentation lives in `docs/`. The Wiki is for drafts, notes, and roadmap items.
+## Cite this work (preferred)
 
-Docs structure:
-- [`docs/guides/`](https://github.com/ciaoidea/HolographiX/tree/V3.0/docs/guides) How to run what is implemented today (commands, flags, workflows).
-- [`docs/kernel/`](https://github.com/ciaoidea/HolographiX/tree/V3.0/docs/kernel) Local behavior and policies that exist in code today.
-- [`docs/spec/`](https://github.com/ciaoidea/HolographiX/tree/V3.0/docs/spec) Protocol and file format contracts (wire/file details).
-- [`docs/vision/`](https://github.com/ciaoidea/HolographiX/tree/V3.0/docs/vision) Stable, release-level narrative (not weekly notes).
+If you use HolographiX ideas (information fields, golden-spiral interleave, torsion/holonomy memory, Lorenz exploration, chunk healing, stacking), please cite:
 
-```
-README.md                  top-level overview (this file)
-src/pyproject.toml         packaging for editable install
-src/requirements.txt       runtime deps (numpy, pillow)
+* Rizzo, A. (2025). *HolographiX: Holographic Information MatriX for Resilient Content Diffusion in Networks* (V3.0). Zenodo. DOI: 10.5281/zenodo.18017872
+* Rizzo, A. (2025). *HolographiX: From Fragile Streams to Information Fields*. ISBN-13: 979-8278598534
 
-src/holo/                  core library
-  codec.py                 codecs v1/v2/v3 (image/audio), chunk scoring, recovery hooks
-  recovery.py              GF(256) RLNC recovery chunks + solver
-  __main__.py              CLI entry (codec + tnc-tx/tnc-rx)
-  __init__.py              public API surface
-  container.py             multi-object packing/unpacking
-  field.py                 field tracking + healing (fixed-point, v3 coefficient-domain)
-  cortex/                  storage helpers (store.py backend)
-  net/                     transport + mesh + content IDs
-    transport.py           datagram framing/reassembly (HODT/HOCT)
-    mesh.py                UDP mesh sender/receiver + priority order
-    arch.py                content_id helpers
-  models/                  coarse model abstraction (downsample/latent_lowfreq/ae_latent)
-  tnc/                     modem + framing + WAV CLI
-    afsk.py                AFSK modem
-    frame.py               framing + CRC
-    cli.py                 tnc-tx/tnc-rx WAV helpers
-  tv/                      HoloTV scheduling + demux helpers
-  mind/                    stubs/placeholders for higher-layer logic
+---
 
-src/examples/              runnable demos (encode/decode, mesh_loopback, heal, pack/extract, benchmarks)
-src/tests/                 unit tests (round-trip, recovery, tnc, tv, healing)
-src/codec_simulation/      React/Vite control deck for codec exploration (optional)
-docs/                      versioned documentation (specs, guides, kernel, vision)
-src/infra/                 containerlab lab + netem/benchmark configs
-src/systemd/               sample systemd units for mesh sender/receiver/node
-src/tools/                 offline tools (e.g., AE coarse training/export)
-```
+## Acknowledgements (healing)
 
-## Testing
+Thanks to **Stefan Hamann** for a practical suggestion on the *healing* workflow (treat healing as an iterative self-consistency pass). In HolographiX this is implemented strictly as **chunk-wise repair + redistribution**, consistent with the “any subset works” contract.
 
-```bash
-PYTHONPATH=src python3 -m unittest discover -s src/tests -p 'test_*.py'
-```
-
-Network/mesh smoke test (loopback UDP using `holo://` content IDs):
-
-```bash
-PYTHONPATH=src python3 src/examples/mesh_loopback.py
-# emits galaxy.jpg chunks on 127.0.0.1, stores in src/examples/out/store_b/...,
-# and writes a reconstructed image to src/examples/out/galaxy_mesh_recon.png
-```
-
-Other functional checks (examples):
-
-```bash
-PYTHONPATH=src python3 src/examples/heal_demo.py
-PYTHONPATH=src python3 src/examples/pack_and_extract.py
-```
-
-## Results snapshot
-
-`src/galaxy.jpg`, coarse-side=16, v3 command:
-
-`python3 -m holo --olonomic src/galaxy.jpg --blocks 16 --quality 40 --packet-bytes 0`
-
-Total ~0.35 MB (coherent single-chunk recon). Same settings for v2 pixel residuals: ~1.69 MB. Visual quality comparable; v3 degrades as “missing waves”, not holes.
-
-<p align="center">
-  <img width="1280"  alt="photon collector" src="https://github.com/user-attachments/assets/c2b939d1-8911-4381-8bd7-a93e29f5401c" /><br/>
-  <em>Photon-collector stacking: multiple exposures reinforce structure over noise.</em>
-</p>
-
-<p align="center">
-  <img width="1280"  alt="drone in harsh weather" src="https://github.com/user-attachments/assets/e8c700f2-e5b6-424b-a848-a230294e8269" /><br/>
-  <em>UAV under harsh weather and degraded RF link: representative of low-SNR transport where quality (e.g., PSNR vs received chunks) improves smoothly as more chunks arrive.</em>
-</p>
-
-## Design principles
-
-Interchangeability by construction: golden permutation ensures quality depends mostly on chunk count, not chunk IDs.
-
-Graceful loss: missing chunks zero high‑freq waves instead of creating spatial/temporal holes.
-
-Stateless decode: any subset of valid chunks decodes without coordination.
-
-Transport‑agnostic: codec math is separate from mesh/UDP; use your own transport if needed.
+---
 
 ## References
 
-- Pribram, K. H. & Carlton, E. H. (1986). *Holonomic brain theory in imaging and object perception*. Acta Psychologica, 63(2), 175–210. [https://doi.org/10.1016/0001-6918(86)90062-4](https://doi.org/10.1016/0001-6918%2886%2990062-4)
-- Pribram, K. H. (1991). *Brain and Perception: Holonomy and Structure in Figural Processing*. Hillsdale, NJ: Lawrence Erlbaum Associates. ISBN 978-0-89859-995-4
-- Bohm, D. (1980). *Wholeness and the Implicate Order*. London: Routledge (Routledge Classics ed. 2002, ISBN 978-0-415-28979-5).
-- Bohm, D. & Hiley, B. J. (1993). *The Undivided Universe: An Ontological Interpretation of Quantum Theory*. London: Routledge. ISBN 978-0-415-12185-9
-- Rizzo, A. *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. DOI: [10.4236/apm.2023.139038](https://doi.org/10.4236/apm.2023.139038)
-- Rizzo, A. (2025). *HolographiX: Holographic Information MatriX for Resilient Content Diffusion in Networks* (v1.6.9). Zenodo. [https://doi.org/10.5281/zenodo.18017872](https://doi.org/10.5281/zenodo.18017872)
-- Rizzo, A. (2025). *HolographiX: From Fragile Streams to Information Fields*. [ISBN-13: 979-8278598534](https://www.amazon.com/dp/B0G6VQ3PWD)
-- Hamann, S. (2025). *The Topological Fixed Point Theory of Fundamental Constants*. DOI: [10.5281/zenodo.15779883](https://zenodo.org/doi/10.5281/zenodo.15779883)
+* Pribram, K. H. & Carlton, E. H. (1986). *Holonomic brain theory in imaging and object perception*. Acta Psychologica, 63(2), 175–210. [https://doi.org/10.1016/0001-6918(86)90062-4](https://doi.org/10.1016/0001-6918%2886%2990062-4)
+* Pribram, K. H. (1991). *Brain and Perception: Holonomy and Structure in Figural Processing*. Hillsdale, NJ: Lawrence Erlbaum Associates. ISBN 978-0-89859-995-4
+* Bohm, D. (1980). *Wholeness and the Implicate Order*. London: Routledge (Routledge Classics ed. 2002, ISBN 978-0-415-28979-5).
+* Bohm, D. & Hiley, B. J. (1993). *The Undivided Universe: An Ontological Interpretation of Quantum Theory*. London: Routledge. ISBN 978-0-415-12185-9
+* Rizzo, A. (2023). *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. DOI: 10.4236/apm.2023.139038
+* Rizzo, A. (2025). *HolographiX: Holographic Information MatriX for Resilient Content Diffusion in Networks* (V3.0). Zenodo. DOI: 10.5281/zenodo.18017872
+* Rizzo, A. (2025). *HolographiX: From Fragile Streams to Information Fields*. ISBN-13: 979-8278598534
+
+---
 
 ## License
 
@@ -547,3 +549,4 @@ HolographiX is licensed under the GNU Affero General Public License v3.0 (AGPLv3
 <p align="center">
   © 2025 <a href="https://holographix.io">holographix.io</a>
 </p>
+

@@ -1,7 +1,7 @@
 # <img width="36" height="36" alt="HolographiX logo" src="https://github.com/user-attachments/assets/d7b26ef6-4645-4add-8ab6-717eb2fb12f2" /> HolographiX: Holographic Information MatriX
 ## V3.0 — Information fields for lossy, unordered worlds
 
-| <img width="20" height="20" alt="paper" src="https://github.com/user-attachments/assets/5cb70ee6-e6f7-4c5e-95b5-95d4e306c877" /> Paper [DOI: 10.5281/zenodo.18017872](https://doi.org/10.5281/zenodo.18212768) | <img width="20" height="20" alt="book" src="https://github.com/user-attachments/assets/264bb318-20b2-4982-a4d0-f7e5373985f0" /> Book: [ISBN-13: 979-8278598534](https://www.amazon.com/dp/B0G6VQ3PWD) | <img width="20" height="20" alt="github" src="https://github.com/user-attachments/assets/e939c63a-fa18-4363-abfe-ed1e6a2f5afc" /> GitHub: [source](https://github.com/ciaoidea/HolographiX) | Docs: [docs](docs/README.md) | Wiki: [docs](https://github.com/ciaoidea/HolographiX/wiki) | <img width="20" height="20" alt="medium" src="https://github.com/user-attachments/assets/7ca2ea42-1fac-4fc0-a66f-cf5a5524fe1f" /> Medium [Article](https://ciaoidea.medium.com/from-the-internet-to-holographic-networks-holo-is-not-a-download-its-convergence-a55733370ae8?postPublishedType=repub) | <img width="20" height="20" alt="podcast" src="https://github.com/user-attachments/assets/986237bf-7a4f-4b14-91c4-b144cd1b48d2" /> Podcast [2025 Dec 20th](https://github.com/user-attachments/assets/bb100f1e-5b36-4697-b352-a76c88c6f9db) |
+| <img width="20" height="20" alt="paper" src="https://github.com/user-attachments/assets/5cb70ee6-e6f7-4c5e-95b5-95d4e306c877" /> Paper [DOI: 10.5281/zenodo.18212768](https://doi.org/10.5281/zenodo.18212768) | <img width="20" height="20" alt="book" src="https://github.com/user-attachments/assets/264bb318-20b2-4982-a4d0-f7e5373985f0" /> Book: [ISBN-13: 979-8278598534](https://www.amazon.com/dp/B0G6VQ3PWD) | <img width="20" height="20" alt="github" src="https://github.com/user-attachments/assets/e939c63a-fa18-4363-abfe-ed1e6a2f5afc" /> GitHub: [source](https://github.com/ciaoidea/HolographiX) | Docs: [docs](docs/README.md) | Wiki: [docs](https://github.com/ciaoidea/HolographiX/wiki) | <img width="20" height="20" alt="medium" src="https://github.com/user-attachments/assets/7ca2ea42-1fac-4fc0-a66f-cf5a5524fe1f" /> Medium [Article](https://ciaoidea.medium.com/from-the-internet-to-holographic-networks-holo-is-not-a-download-its-convergence-a55733370ae8?postPublishedType=repub) | <img width="20" height="20" alt="podcast" src="https://github.com/user-attachments/assets/986237bf-7a4f-4b14-91c4-b144cd1b48d2" /> Podcast [2025 Dec 20th](https://github.com/user-attachments/assets/bb100f1e-5b36-4697-b352-a76c88c6f9db) |
 
 <img width="1280" alt="holographix cover" src="https://github.com/user-attachments/assets/ae95ff1f-b15f-46f3-bf1c-bebab868b851" />
 
@@ -519,7 +519,7 @@ Field operations are first-class: decode partially at any time, heal to restore 
 
 If you use HolographiX ideas (information fields, golden-spiral interleave, torsion/holonomy memory, Lorenz exploration, chunk healing, stacking), please cite:
 
-* Rizzo, A. (2025). *HolographiX: Holographic Information MatriX for Resilient Content Diffusion in Networks* (V3.0). Zenodo. DOI: 10.5281/zenodo.18017872
+* Rizzo, A. (2025). *HolographiX: Holographic Information MatriX for Resilient Content Diffusion in Networks* (V3.0). Zenodo. DOI: 10.5281/zenodo.18212768
 * Rizzo, A. (2025). *HolographiX: From Fragile Streams to Information Fields*. ISBN-13: 979-8278598534
 
 ---
@@ -537,7 +537,7 @@ Thanks to **Stefan Hamann** for a practical suggestion on the *healing* workflow
 * Bohm, D. (1980). *Wholeness and the Implicate Order*. London: Routledge (Routledge Classics ed. 2002, ISBN 978-0-415-28979-5).
 * Bohm, D. & Hiley, B. J. (1993). *The Undivided Universe: An Ontological Interpretation of Quantum Theory*. London: Routledge. ISBN 978-0-415-12185-9
 * Rizzo, A. (2023). *The Golden Ratio Theorem*, Applied Mathematics, 14(09), 2023. DOI: 10.4236/apm.2023.139038
-* Rizzo, A. (2025). *HolographiX: Holographic Information MatriX for Resilient Content Diffusion in Networks* (V1.7). Zenodo. DOI: 10.5281/zenodo.18017872
+* Rizzo, A. (2025). *HolographiX: Holographic Information MatriX for Resilient Content Diffusion in Networks* (V1.7). Zenodo. DOI: 10.5281/zenodo.18212768
 * Rizzo, A. (2025). *HolographiX: From Fragile Streams to Information Fields*. ISBN-13: 979-8278598534
 
 ---
